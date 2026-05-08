@@ -1777,7 +1777,7 @@
     result.style.color = 'var(--text-muted)';
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const res = await fetch(`https://api.jquants.com/v2/equities/bars/daily?date=${today}&code=7203`, {
+      const res = await fetch(`https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${today}&code=7203`, {
         headers: { 'x-api-key': key }
       });
       if (res.ok) {
@@ -2066,7 +2066,7 @@
     try {
       const targetDate = getRecentBusinessDate();
       const items = await fetchWithPaging(
-        `https://api.jquants.com/v2/equities/bars/daily?date=${targetDate}`,
+        `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${targetDate}`,
         { 'x-api-key': s.jquantsApiKey }
       );
 
@@ -2203,7 +2203,7 @@
 
       try {
         const items = await fetchWithPaging(
-          `https://api.jquants.com/v1/fins/statements?code=${code}`,
+          `https://jquants-proxy.drumsbaka.workers.dev/v1/fins/statements?code=${code}`,
           { 'x-api-key': s.jquantsApiKey }
         );
         const forecast = extractAnnualDividend(items);
