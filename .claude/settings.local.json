@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process \"C:\\\\Users\\\\drums\\\\dividend-app\\\\app.html\")",
+      "PowerShell(git *)"
+    ]
+  }
+}
