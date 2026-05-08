@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高配当株ポートフォリオ管理</title>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    /* ===== CSS変数 ===== */
+    :root {
+      --bg:           #0d0d1a;
+      --bg2:          #13132a;
+      --bg3:          #1a1a35;
+      --border:       #2a2a4a;
+      --gold:         #c8a96e;
+      --gold-dim:     #8a6e3e;
+      --green:        #2e6b4f;
+      --green-light:  #3d9668;
+      --blue:         #4a7fd4;
+      --blue-light:   #6a9fe4;
+      --text:         #e8e8f0;
+      --text-muted:   #8888aa;
+      --red:          #e05555;
+      --yellow:       #f0c040;
+      --nav-h:        56px;
+    }
+
+    /* ===== リセット・ベース ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 14px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'BIZ UDPGothic', sans-serif;
+      min-height: 100vh;
+      padding-top: var(--nav-h);
+    }
+    a { color: var(--blue-light); text-decoration: none; }
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+    }
+
+    /* ===== ナビゲーション ===== */
+    #nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 4px;
+      z-index: 1000;
+    }
+    #nav .nav-brand {
+      font-weight: 700;
+      color: var(--gold);
+      font-size: 1rem;
+      margin-right: 16px;
+      white-space: nowrap;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-btn:hover { background: var(--bg3); color: var(--text); }
+    .nav-btn.active { background: var(--bg3); color: var(--gold); font-weight: 700; }
+
+    /* ===== 画面コンテナ ===== */
+    .screen { display: none; max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
+    .screen.active { display: block; }
+
+    /* ===== カード ===== */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-family: 'Roboto', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ===== グリッド ===== */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .grid-4, .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ===== テーブル ===== */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--dash-tbl-size, 1.0rem);
+    }
+    th {
+      background: var(--bg3);
+      color: var(--text-muted);
+      font-weight: 700;
+      text-align: right;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th:first-child { text-align: left; }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      font-family: 'Roboto Mono', monospace;
+      white-space: nowrap;
+    }
+    td:first-child {
+      font-family: 'BIZ UDPGothic', sans-serif;
+      text-align: left;
+    }
+    tr:hover td { background: var(--bg3); }
+
+    /* ===== バッジ ===== */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.91em;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-double  { background: #5a1a1a; color: #ff8080; }
+    .badge-target  { background: #4a3a00; color: var(--yellow); }
+    .badge-yield   { background: #0a3a1a; color: var(--green-light); }
+    .badge-none    { color: var(--text-muted); }
+
+    /* ===== プラス・マイナス色 ===== */
+    .pos { color: var(--green-light); }
+    .neg { color: var(--red); }
+    .muted { color: var(--text-muted); }
+
+    /* ===== バナー ===== */
+    .banner {
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+    }
+    .banner-warn { background: #2a1a00; border: 1px solid #5a3a00; color: var(--yellow); }
+    .banner-err  { background: #2a0a0a; border: 1px solid #5a1a1a; color: #ff8080; }
+    .banner-info { background: #0a1a2a; border: 1px solid #1a3a5a; color: var(--blue-light); }
+
+    /* ===== アラートバナーセクション ===== */
+    #alert-banner-list .alert-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+    .alert-item .ai-code { font-family: 'Roboto Mono', monospace; color: var(--text-muted); }
+    .alert-item .ai-name { flex: 1; }
+    .alert-item .ai-yield { font-family: 'Roboto Mono', monospace; color: var(--gold); font-weight: 700; }
+
+    /* ===== セクション見出し ===== */
+    .section-title {
+      color: var(--gold);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-wrap { margin-bottom: 20px; }
+
+    /* ===== ボタン ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-gold    { background: var(--gold); color: #000; }
+    .btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger  { background: var(--red); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+    /* ===== フォームグループ ===== */
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+    .form-input { width: 100%; }
+
+    /* ===== ドロップゾーン ===== */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .dropzone.drag-over {
+      border-color: var(--blue);
+      background: #0a1a2a;
+    }
+    .dropzone.loaded {
+      border-color: var(--green-light);
+      background: #0a2a1a;
+      color: var(--green-light);
+    }
+    .dropzone-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    /* ===== オンボーディング ===== */
+    .ob-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ob-step:last-child { border-bottom: none; }
+    .ob-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .ob-num.done { background: var(--green); color: #fff; }
+    .ob-num.todo { background: var(--bg3); color: var(--text-muted); }
+    .ob-text { flex: 1; }
+    .ob-text .ob-label { font-size: 0.85rem; font-weight: 700; }
+    .ob-text .ob-desc  { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* ===== ローディング ===== */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== トースト ===== */
+    #toast-container {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999;
+    }
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      max-width: 360px;
+      animation: slideIn 0.2s ease;
+    }
+    .toast.toast-ok   { border-color: var(--green-light); color: var(--green-light); }
+    .toast.toast-err  { border-color: var(--red); color: #ff8080; }
+    .toast.toast-info { border-color: var(--blue); color: var(--blue-light); }
+    @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* ===== ストレージ警告バナー ===== */
+    #storage-warn-banner { display: none; }
+
+    /* ===== プログレスバー ===== */
+    .progress-bar-wrap {
+      background: var(--bg3);
+      border-radius: 4px;
+      height: 6px;
+      margin-top: 4px;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--green-light);
+      transition: width 0.3s;
+    }
+    .progress-bar.warn { background: var(--yellow); }
+    .progress-bar.danger { background: var(--red); }
+
+    /* ===== ソート可能ヘッダー ===== */
+    .th-sort {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .th-sort:hover { background: #1e1e38; color: var(--text); }
+    .sort-ind { margin-left: 3px; font-size: 0.65rem; opacity: 0.3; }
+    .sort-ind.asc::after  { content: '▲'; opacity: 1; color: var(--gold); }
+    .sort-ind.desc::after { content: '▼'; opacity: 1; color: var(--gold); }
+
+    /* ===== 口座バッジ ===== */
+    .acct-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .acct-nisa { background: #0e2a18; color: var(--green-light); }
+    .acct-tok  { background: #0e1a30; color: var(--blue-light); }
+
+    /* ===== ERR-02 スタイル ===== */
+    .err02-row td { background: rgba(240,192,64,0.04) !important; }
+    .err02-row:hover td { background: rgba(240,192,64,0.08) !important; }
+    .err02-badge { color: var(--yellow); font-size: 0.75rem; font-weight: 700; }
+
+    /* ===== アラートバナーアイテム改善 ===== */
+    #alert-banner-list .alert-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+    }
+    .ai-metrics {
+      margin-left: auto;
+      text-align: right;
+    }
+    .ai-deviation { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ===== 設定テーブル ERR-02 ===== */
+    .settings-err02 td:first-child::before {
+      content: '⚠ ';
+      color: var(--yellow);
+      font-size: 0.7rem;
+    }
+
+    /* ===== テーブルフッター合計行 ===== */
+    tfoot tr td {
+      border-top: 2px solid var(--border);
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.8rem;
+      padding: 8px 10px;
+      text-align: right;
+    }
+    tfoot tr td:first-child { text-align: left; font-family: 'BIZ UDPGothic', sans-serif; }
+
+    /* ===== テーブル文字サイズ切替ボタン S/M/L ===== */
+    .btn-tblsize {
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .btn-tblsize:hover:not(.active) { color: var(--text); border-color: var(--text-muted); }
+    .btn-tblsize.active { border-color: var(--gold); color: var(--gold); background: rgba(200,169,110,0.1); }
+
+    /* ===== APIステータスインジケータ（ナビバー右端） ===== */
+    #nav-api-status {
+      margin-left: auto;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      display: none;
+    }
+    #nav-api-status.status-loading { color: var(--blue-light); display: inline-block; }
+    #nav-api-status.status-ok      { color: var(--green-light); display: inline-block; }
+    #nav-api-status.status-err     { color: var(--red); display: inline-block; }
+
+    /* ===== 配当予想取得プログレスパネル（左下固定） ===== */
+    #div-fetch-panel {
+      position: fixed;
+      bottom: 20px; left: 20px;
+      background: var(--bg2);
+      border: 1px solid var(--blue);
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 300px;
+      z-index: 9998;
+      display: none;
+    }
+    .dfp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .dfp-title { font-size: 0.8rem; color: var(--blue-light); font-weight: 700; }
+    .dfp-cancel { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; padding: 0; }
+    .dfp-cancel:hover { color: var(--red); }
+    #div-fetch-text { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== ナビゲーション ===== -->
+  <nav id="nav">
+    <div class="nav-brand">高配当 PF</div>
+    <button class="nav-btn active" onclick="showScreen('dashboard')" id="nav-dashboard">ダッシュボード</button>
+    <button class="nav-btn" onclick="showScreen('charts')"   id="nav-charts">推移グラフ</button>
+    <button class="nav-btn" onclick="showScreen('dividend')" id="nav-dividend">配当サマリー</button>
+    <button class="nav-btn" onclick="showScreen('settings')" id="nav-settings">設定</button>
+    <button class="nav-btn" onclick="showScreen('import')"   id="nav-import">CSVインポート</button>
+    <span id="nav-api-status"></span>
+  </nav>
+
+  <!-- ===== ERR-03: ストレージ警告バナー ===== -->
+  <div id="storage-warn-banner" class="banner banner-warn" style="display:none;margin:8px 16px 0;border-radius:6px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        ⚠️ ストレージ使用量が <strong id="storage-warn-pct">80</strong>% を超えています。古いスナップショットを自動削除しました。
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')">設定画面で確認</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeStorageWarning()">×</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 画面1: ダッシュボード ===== -->
+  <div id="screen-dashboard" class="screen active">
+    <!-- ERR-01: 株価取得失敗バナー -->
+    <div id="err01-banner" class="banner banner-err" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <strong>⚠️ 株価の自動取得に失敗しました（ERR-01）</strong><br>
+          <span style="font-size:0.78rem;">現在値列には CSV インポート時の値を表示しています。</span><br>
+          <span id="err01-reason" style="font-size:0.75rem;opacity:0.8;"></span>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="retryFetchPrices()">再取得</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearErr01()">×</button>
+        </div>
+      </div>
+    </div>
+    <!-- KPIカード -->
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title">手取り配当（年間予想）</div>
+        <div class="card-value" id="kpi-dividend">－</div>
+        <div class="card-sub" id="kpi-dividend-sub">税引後合計</div>
+      </div>
+      <div class="card">
+        <div class="card-title">ポートフォリオ利回り</div>
+        <div class="card-value" id="kpi-yield">－</div>
+        <div class="card-sub" id="kpi-yield-sub">税引後・加重平均</div>
+      </div>
+      <div class="card">
+        <div class="card-title">時価評価額合計</div>
+        <div class="card-value" id="kpi-eval">－</div>
+        <div class="card-sub" id="kpi-eval-sub">評価損益</div>
+      </div>
+      <div class="card">
+        <div class="card-title">保有銘柄数</div>
+        <div class="card-value" id="kpi-count">－</div>
+        <div class="card-sub" id="kpi-count-sub">口座別内訳</div>
+      </div>
+    </div>
+
+    <!-- アラートバナー -->
+    <div class="section-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="section-title" style="margin-bottom:0;">⚡ 買い時アラート</div>
+        <span id="alert-count-badge" style="font-size:0.78rem;color:var(--text-muted);"></span>
+      </div>
+      <div id="alert-banner-list">
+        <div class="muted" style="font-size:0.82rem;">CSVをインポートするとアラートが表示されます。</div>
+      </div>
+    </div>
+
+    <!-- ERR-02: 配当予想未設定通知 -->
+    <div id="err02-notice" class="banner banner-warn" style="display:none;margin-bottom:16px;">
+      <span id="err02-notice-text"></span>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:12px;">設定画面へ →</button>
+    </div>
+
+    <!-- 保有株一覧テーブル -->
+    <div class="section-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin-bottom:0;">
+          保有株一覧
+          <span id="dash-count-badge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;"></span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="dash-search" placeholder="コード・銘柄名…" style="width:130px;" oninput="onDashFilterChange()">
+          <select id="dash-filter-account" onchange="onDashFilterChange()">
+            <option value="">全口座</option>
+            <option value="NISA成長投資枠">NISA</option>
+            <option value="特定口座">特定</option>
+          </select>
+          <select id="dash-filter-alert" onchange="onDashFilterChange()">
+            <option value="">全アラート</option>
+            <option value="double">🔥 ダブル</option>
+            <option value="target">🟡 目標超え</option>
+            <option value="yield">🟢 利回り向上</option>
+            <option value="none">－ アラートなし</option>
+          </select>
+          <div style="display:flex;gap:2px;margin-left:4px;">
+            <button class="btn-tblsize" id="tblsize-S" onclick="setTableSize('S')">S</button>
+            <button class="btn-tblsize" id="tblsize-M" onclick="setTableSize('M')">M</button>
+            <button class="btn-tblsize" id="tblsize-L" onclick="setTableSize('L')">L</button>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="dash-table">
+          <thead>
+            <tr>
+              <th class="th-sort" onclick="setDashSort('code')">コード / 銘柄<span class="sort-ind" data-col="code"></span></th>
+              <th class="th-sort" style="text-align:left;" onclick="setDashSort('account')">口座<span class="sort-ind" data-col="account"></span></th>
+              <th class="th-sort" onclick="setDashSort('shares')">株数<span class="sort-ind" data-col="shares"></span></th>
+              <th>平均取得単価</th>
+              <th>現在値</th>
+              <th class="th-sort" onclick="setDashSort('eval')">時価評価額<span class="sort-ind" data-col="eval"></span></th>
+              <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
+              <th>配当予想/株</th>
+              <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
+              <th>アラート</th>
+            </tr>
+          </thead>
+          <tbody id="dash-table-body">
+            <tr>
+              <td colspan="10" class="muted" style="text-align:center;padding:32px;">
+                CSVをインポートしてください →
+                <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot id="dash-table-foot" style="display:none;"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 画面2: 推移グラフ ===== -->
+  <div id="screen-charts" class="screen">
+    <div class="section-title">推移グラフ</div>
+    <div class="banner banner-info">Phase 2 で実装予定です。</div>
+  </div>
+
+  <!-- ===== 画面3: 配当サマリー ===== -->
+  <div id="screen-dividend" class="screen">
+    <div class="section-title">配当サマリー</div>
+    <div class="banner banner-info">Phase 2 で実装予定です。</div>
+  </div>
+
+  <!-- ===== 画面4: 設定 ===== -->
+  <div id="screen-settings" class="screen">
+
+    <!-- オンボーディング -->
+    <div class="section-wrap" id="ob-section">
+      <div class="section-title">セットアップ状況</div>
+      <div class="card">
+        <div id="ob-steps"></div>
+      </div>
+    </div>
+
+    <!-- APIキー設定 -->
+    <div class="section-wrap">
+      <div class="section-title">J-Quants API キー</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">API キー（無料プラン対応）</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" id="settings-apikey" class="form-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+            <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
+            J-Quants 無料プランで株価・配当予想データを自動取得します。
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="testApiKey()">接続テスト</button>
+          <button class="btn btn-ghost btn-sm" onclick="retryFetchPrices()">株価を今すぐ取得</button>
+          <button class="btn btn-ghost btn-sm" onclick="fetchAllDividendForecasts()">配当予想を今すぐ更新</button>
+          <span id="api-test-result" style="font-size:0.8rem;align-self:center;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 銘柄別設定 -->
+    <div class="section-wrap">
+      <div class="section-title">銘柄別設定</div>
+      <div class="table-wrap">
+        <table id="settings-table">
+          <thead>
+            <tr>
+              <th>コード / 銘柄</th>
+              <th>配当予想/株 (円)</th>
+              <th>ソース</th>
+              <th>利回り目標 (%)</th>
+              <th>視点②モード</th>
+              <th>下落率閾値 (%)</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="settings-table-body">
+            <tr>
+              <td colspan="7" class="muted" style="text-align:center;padding:24px;">
+                CSVをインポートするとここに銘柄が表示されます。
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- データ管理 -->
+    <div class="section-wrap">
+      <div class="section-title">データ管理</div>
+      <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <button class="btn btn-ghost" onclick="exportBackup()">JSONバックアップ出力</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('import-backup-file').click()">JSONバックアップ読み込み</button>
+        <input type="file" id="import-backup-file" accept=".json" style="display:none" onchange="importBackup(this)">
+        <button class="btn btn-danger" onclick="clearAllData()">全データ消去</button>
+        <div style="margin-left:auto;font-size:0.8rem;color:var(--text-muted);">
+          ストレージ: <span id="storage-usage-text">計算中…</span>
+          <div class="progress-bar-wrap" style="width:160px;display:inline-block;vertical-align:middle;margin-left:8px;">
+            <div class="progress-bar" id="storage-progress" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 画面5: CSVインポート ===== -->
+  <div id="screen-import" class="screen">
+    <div class="section-title">CSVインポート</div>
+
+    <!-- 月選択 -->
+    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <label style="font-size:0.85rem;">対象月：</label>
+      <input type="month" id="import-month" style="width:160px;">
+      <div style="font-size:0.8rem;color:var(--text-muted);">スナップショットの月を指定してください（省略時：今月）</div>
+    </div>
+
+    <!-- ドロップゾーン2つ -->
+    <div class="grid-2" style="margin-bottom:16px;">
+      <!-- 保有株CSV -->
+      <div>
+        <div style="font-size:0.85rem;font-weight:700;margin-bottom:8px;color:var(--gold);">① 保有株CSV（楽天証券）</div>
+        <div class="dropzone" id="dz-holdings" ondragover="dzDragOver(event,'holdings')" ondragleave="dzDragLeave(event,'holdings')" ondrop="dzDrop(event,'holdings')" onclick="document.getElementById('file-holdings').click()">
+          <div class="dropzone-icon">📄</div>
+          <div>ドラッグ&ドロップ または クリックで選択</div>
+          <div style="font-size:0.75rem;margin-top:4px;">保有株一覧.csv（UTF-8）</div>
+        </div>
+        <input type="file" id="file-holdings" accept=".csv" style="display:none" onchange="fileSelected(this,'holdings')">
+        <div id="dz-holdings-name" style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;"></div>
+      </div>
+      <!-- 配当金CSV -->
+      <div>
+        <div style="font-size:0.85rem;font-weight:700;margin-bottom:8px;color:var(--gold);">② 配当金CSV（楽天証券）</div>
+        <div class="dropzone" id="dz-dividend" ondragover="dzDragOver(event,'dividend')" ondragleave="dzDragLeave(event,'dividend')" ondrop="dzDrop(event,'dividend')" onclick="document.getElementById('file-dividend').click()">
+          <div class="dropzone-icon">💰</div>
+          <div>ドラッグ&ドロップ または クリックで選択</div>
+          <div style="font-size:0.75rem;margin-top:4px;">配当金入金履歴.csv（CP932）</div>
+        </div>
+        <input type="file" id="file-dividend" accept=".csv" style="display:none" onchange="fileSelected(this,'dividend')">
+        <div id="dz-dividend-name" style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <!-- インポートボタン -->
+    <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;">
+      <button class="btn btn-gold" id="btn-import" onclick="runImport()" disabled>インポート実行</button>
+      <button class="btn btn-ghost" onclick="clearImportFiles()">クリア</button>
+      <span id="import-status" style="font-size:0.82rem;color:var(--text-muted);"></span>
+    </div>
+
+    <!-- エラー詳細（ERR-04）-->
+    <div id="import-error-section" style="display:none;" class="section-wrap">
+      <div class="section-title">インポートエラー詳細</div>
+      <div id="import-error-content" class="card"></div>
+    </div>
+
+    <!-- インポート履歴 -->
+    <div class="section-wrap">
+      <div class="section-title">インポート履歴（スナップショット）</div>
+      <div class="table-wrap">
+        <table id="import-history-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">月</th>
+              <th>インポート日時</th>
+              <th>銘柄数</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="import-history-body">
+            <tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">まだインポートがありません。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 配当予想取得プログレスパネル ===== -->
+  <div id="div-fetch-panel">
+    <div class="dfp-header">
+      <span class="dfp-title">🔄 配当予想取得中</span>
+      <button class="dfp-cancel" onclick="abortDividendFetch()" title="キャンセル">キャンセル ×</button>
+    </div>
+    <div id="div-fetch-text">準備中…</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="div-fetch-bar" style="width:0%;background:var(--blue);"></div>
+    </div>
+  </div>
+
+  <!-- ===== トーストコンテナ ===== -->
+  <div id="toast-container"></div>
+
+  <script>
+  'use strict';
+
+  // ============================================================
+  // STEP 1: データ構造定義・LocalStorage ユーティリティ
+  // ============================================================
+
+  /** LocalStorage キー定数 */
+  const STORAGE_KEYS = {
+    SNAPSHOTS:     'hdp_snapshots',
+    SETTINGS:      'hdp_settings',
+    STOCK_MASTER:  'hdp_stock_master',
+    DIVIDEND_HIST: 'hdp_dividend_hist',
+    PRICE_CACHE:   'hdp_price_cache',
+    LAST_FETCH:    'hdp_last_fetch',
+  };
+
+  /** 口座ごとの税係数 */
+  const TAX_COEF = {
+    'NISA成長投資枠': 1.0,
+    '特定口座':       0.79685,
+  };
+
+  /** LocalStorage 読み込み（失敗時 null 返却） */
+  function getStorage(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn('getStorage error:', key, e);
+      return null;
+    }
+  }
+
+  /** LocalStorage 書き込み（失敗時 false 返却） */
+  function setStorage(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      if (e.name === 'QuotaExceededError') {
+        handleStorageQuotaExceeded();
+      }
+      console.error('setStorage error:', key, e);
+      return false;
+    }
+  }
+
+  /** 数値パース共通関数（カンマ・符号・通貨記号を除去） */
+  function parseNum(str) {
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    return parseFloat(String(str).replace(/[^0-9.-]/g, '')) || 0;
+  }
+
+  /** デフォルト設定生成 */
+  function defaultSettings() {
+    return {
+      jquantsApiKey:         '',
+      lastDividendFetchDate: null,
+    };
+  }
+
+  /** 設定取得（なければデフォルト生成） */
+  function getSettings() {
+    return getStorage(STORAGE_KEYS.SETTINGS) || defaultSettings();
+  }
+
+  /** 設定保存 */
+  function saveSettings(s) {
+    setStorage(STORAGE_KEYS.SETTINGS, s);
+  }
+
+  /** スナップショット一覧取得 */
+  function getSnapshots() {
+    return getStorage(STORAGE_KEYS.SNAPSHOTS) || [];
+  }
+
+  /** スナップショット保存（最大60件・古い順に削除） */
+  function saveSnapshots(snaps) {
+    if (snaps.length > 60) snaps = snaps.slice(-60);
+    setStorage(STORAGE_KEYS.SNAPSHOTS, snaps);
+  }
+
+  /** 銘柄マスタ取得（{code: stockMaster} のマップ） */
+  function getStockMaster() {
+    return getStorage(STORAGE_KEYS.STOCK_MASTER) || {};
+  }
+
+  /** 銘柄マスタ保存 */
+  function saveStockMaster(master) {
+    setStorage(STORAGE_KEYS.STOCK_MASTER, master);
+  }
+
+  /** 配当実績履歴取得 */
+  function getDividendHist() {
+    return getStorage(STORAGE_KEYS.DIVIDEND_HIST) || [];
+  }
+
+  /** 配当実績履歴保存 */
+  function saveDividendHist(hist) {
+    setStorage(STORAGE_KEYS.DIVIDEND_HIST, hist);
+  }
+
+  /** 株価キャッシュ取得 */
+  function getPriceCache() {
+    return getStorage(STORAGE_KEYS.PRICE_CACHE);
+  }
+
+  /** 株価キャッシュ保存 */
+  function savePriceCache(date, prices) {
+    setStorage(STORAGE_KEYS.PRICE_CACHE, { date, prices });
+  }
+
+  /** 最新スナップショット取得 */
+  function getLatestSnapshot() {
+    const snaps = getSnapshots();
+    return snaps.length ? snaps[snaps.length - 1] : null;
+  }
+
+  /** 新規スナップショット雛形 */
+  function createSnapshot(yearMonth) {
+    return {
+      id:         yearMonth,
+      importedAt: new Date().toISOString(),
+      positions:  [],
+    };
+  }
+
+  /** 新規銘柄マスタエントリ雛形 */
+  function createStockMasterEntry(code, name) {
+    return {
+      code,
+      name,
+      sector33:          '',
+      sectorType:        'cyclical',
+      dividendForecast:  0,
+      dividendSource:    'none',
+      dividendManual:    false,
+      payMonths:         [],
+      alertMode:         'B',
+      alertThreshold:    3.5,
+      dropRateThreshold: 10.0,
+    };
+  }
+
+  // ============================================================
+  // ERR-03: ストレージ容量超過ハンドラ
+  // ============================================================
+
+  async function checkStorageUsage() {
+    if (!navigator.storage || !navigator.storage.estimate) return;
+    try {
+      const est = await navigator.storage.estimate();
+      const pct = est.usage / est.quota * 100;
+      const usedMB  = (est.usage / 1024 / 1024).toFixed(1);
+      const totalMB = (est.quota  / 1024 / 1024).toFixed(0);
+
+      // 設定画面のプログレスバー更新
+      const textEl = document.getElementById('storage-usage-text');
+      if (textEl) textEl.textContent = `${usedMB} MB / ${totalMB} MB (${pct.toFixed(1)}%)`;
+      const bar = document.getElementById('storage-progress');
+      if (bar) {
+        bar.style.width = Math.min(pct, 100) + '%';
+        bar.className = 'progress-bar' + (pct > 80 ? ' danger' : pct > 60 ? ' warn' : '');
+      }
+
+      // ERR-03: 80% 超過 → バナー表示 + 自動削除（何度でも表示）
+      const banner = document.getElementById('storage-warn-banner');
+      if (!banner) return;
+      if (pct > 80) {
+        pruneOldSnapshots();
+        document.getElementById('storage-warn-pct').textContent = pct.toFixed(1);
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    } catch (e) {
+      console.warn('storage estimate failed:', e);
+    }
+  }
+
+  /** ERR-03 バナーを手動で閉じる（使用量が下がれば次回チェック時に再表示） */
+  function closeStorageWarning() {
+    const banner = document.getElementById('storage-warn-banner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  function handleStorageQuotaExceeded() {
+    pruneOldSnapshots();
+    showToast('ストレージ容量超過のため古いスナップショットを削除しました。', 'err');
+    checkStorageUsage();
+  }
+
+  /** 古いスナップショットを削除して容量を確保 */
+  function pruneOldSnapshots() {
+    const snaps = getSnapshots();
+    if (snaps.length > 12) {
+      const pruned = snaps.slice(-12);
+      setStorage(STORAGE_KEYS.SNAPSHOTS, pruned);
+    }
+  }
+
+  // ============================================================
+  // STEP 2: ナビゲーション・画面切替
+  // ============================================================
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    document.getElementById('nav-' + id).classList.add('active');
+
+    if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
+    if (id === 'settings')  renderSettings();
+    if (id === 'import')    renderImportHistory();
+  }
+
+  // ============================================================
+  // トースト通知
+  // ============================================================
+
+  function showToast(msg, type = 'info', duration = 3500) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, duration);
+  }
+
+  // ============================================================
+  // STEP 3: CSVインポート
+  // ============================================================
+
+  const importFiles = { holdings: null, dividend: null };
+
+  function dzDragOver(e, type) {
+    e.preventDefault();
+    document.getElementById('dz-' + type).classList.add('drag-over');
+  }
+  function dzDragLeave(e, type) {
+    document.getElementById('dz-' + type).classList.remove('drag-over');
+  }
+  function dzDrop(e, type) {
+    e.preventDefault();
+    dzDragLeave(e, type);
+    const file = e.dataTransfer.files[0];
+    if (file) setImportFile(type, file);
+  }
+  function fileSelected(input, type) {
+    if (input.files[0]) setImportFile(type, input.files[0]);
+  }
+
+  function setImportFile(type, file) {
+    importFiles[type] = file;
+    const dz = document.getElementById('dz-' + type);
+    dz.classList.add('loaded');
+    document.getElementById('dz-' + type + '-name').textContent = '✓ ' + file.name;
+    updateImportButton();
+  }
+
+  function clearImportFiles() {
+    importFiles.holdings = null;
+    importFiles.dividend = null;
+    ['holdings', 'dividend'].forEach(t => {
+      const dz = document.getElementById('dz-' + t);
+      dz.classList.remove('loaded', 'drag-over');
+      document.getElementById('dz-' + t + '-name').textContent = '';
+      document.getElementById('file-' + t).value = '';
+    });
+    document.getElementById('import-error-section').style.display = 'none';
+    document.getElementById('import-status').textContent = '';
+    updateImportButton();
+  }
+
+  function updateImportButton() {
+    const hasAny = importFiles.holdings || importFiles.dividend;
+    document.getElementById('btn-import').disabled = !hasAny;
+  }
+
+  /** 保有株CSV（CP932/Shift-JIS）パース */
+  async function parseHoldingsCsv(file) {
+    // CP932で読み込み（楽天証券の保有株CSVはShift-JIS）
+    const buf  = await file.arrayBuffer();
+    const text = new TextDecoder('shift-jis').decode(buf);
+
+    // \r\n / \r 両対応・空行除去
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+    if (!lines.length) throw new Error('ファイルが空です');
+
+    // 「種別」セルが存在する行をヘッダー行として動的検索
+    // （先頭28行前後に資産合計などの情報行があるため行内容で判断）
+    const headerIdx = lines.findIndex(l => {
+      const cells = parseCsvLine(l);
+      return cells.some(c => c.trim() === '種別');
+    });
+    if (headerIdx < 0) throw new Error('ヘッダー行（「種別」列）が見つかりません');
+
+    const headers = parseCsvLine(lines[headerIdx]).map(h => h.trim());
+
+    // 「銘柄コード・ティッカー」列と「銘柄」列を区別して取得
+    // 「[単位]」列が混在しているため includes で部分一致、衝突する列は明示的に区別する
+    const colOf = (kw) => headers.findIndex(h => h.includes(kw));
+
+    const COL = {
+      type:      headers.findIndex(h => h === '種別'),
+      // 「銘柄コード」は「銘柄コード・ティッカー」を含む列にマッチ
+      code:      colOf('銘柄コード'),
+      // 「銘柄」列は「銘柄コード」を含まない列（名称のみ）
+      name:      headers.findIndex(h => h.includes('銘柄') && !h.includes('コード') && !h.includes('ティッカー')),
+      account:   colOf('口座'),
+      shares:    colOf('保有数量'),
+      avgCost:   colOf('平均取得価額'),
+      curPrice:  colOf('現在値'),
+      evalAmt:   colOf('時価評価額'),
+      // 「評価損益」列が2列（円・％）あるため単位で区別
+      evalGain:  headers.findIndex(h => h.includes('評価損益') && !h.includes('％') && !h.includes('%')),
+      evalGainP: headers.findIndex(h => h.includes('評価損益') && (h.includes('％') || h.includes('%'))),
+    };
+
+    // 必須列の存在確認
+    const required = { type: '種別', code: '銘柄コード', name: '銘柄', account: '口座', shares: '保有数量' };
+    for (const [key, label] of Object.entries(required)) {
+      if (COL[key] < 0) throw new Error(`「${label}」列が見つかりません（ヘッダー: ${headers.slice(0, 8).join(' | ')}）`);
+    }
+
+    const positions = [];
+    const errors    = [];
+
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      if (cells.length < 3) continue;
+
+      const type = cells[COL.type]?.trim() || '';
+      if (type !== '国内株式') continue;
+
+      try {
+        const code = cells[COL.code]?.trim() || '';
+        if (!/^\d{4}$/.test(code)) throw new Error(`銘柄コードが不正（4桁の数字ではない）: "${code}"`);
+
+        positions.push({
+          code,
+          name:         cells[COL.name]?.trim()    || '',
+          account:      normalizeAccount(cells[COL.account]?.trim() || ''),
+          shares:       parseNum(cells[COL.shares]),
+          avgCost:      parseNum(cells[COL.avgCost]),
+          currentPrice: parseNum(cells[COL.curPrice]),
+          priceSource:  'csv',
+          evalAmount:   parseNum(cells[COL.evalAmt]),
+          evalGain:     parseNum(cells[COL.evalGain]),
+          evalGainPct:  parseNum(cells[COL.evalGainP]),
+        });
+      } catch (e) {
+        errors.push({ row: i + 1, line: lines[i].substring(0, 80), reason: e.message });
+      }
+    }
+
+    return { positions, errors };
+  }
+
+  /** 配当金CSV（CP932）パース */
+  async function parseDividendCsv(file) {
+    const buf = await file.arrayBuffer();
+    const text = new TextDecoder('shift-jis').decode(buf);
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) throw new Error('ファイルが空です');
+
+    let headerIdx = lines.findIndex(l => l.includes('入金日') || l.includes('銘柄コード'));
+    if (headerIdx < 0) throw new Error('ヘッダー行が見つかりません');
+
+    const headers = lines[headerIdx].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    const colOf = (name) => headers.findIndex(h => h.includes(name));
+
+    const COL = {
+      payDate:  colOf('入金日'),
+      account:  colOf('口座'),
+      code:     colOf('銘柄コード'),
+      name:     colOf('銘柄'),
+      shares:   colOf('数量'),
+      gross:    colOf('税引前'),
+      tax:      colOf('税額'),
+      net:      colOf('受取金額'),
+    };
+
+    const records = [];
+    const errors = [];
+
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      if (!cells.length || !cells[COL.code]) continue;
+      try {
+        const code = cells[COL.code]?.replace(/"/g, '').trim();
+        if (!code || code.length !== 4) continue;
+
+        const shares = parseNum(cells[COL.shares]);
+        const gross  = parseNum(cells[COL.gross]);
+        if (!shares) throw new Error('株数が0');
+
+        records.push({
+          code,
+          name:       cells[COL.name]?.replace(/"/g, '').trim() || '',
+          account:    normalizeAccount(cells[COL.account]?.replace(/"/g, '').trim() || ''),
+          payDate:    cells[COL.payDate]?.replace(/"/g, '').trim() || '',
+          shares,
+          grossAmt:   gross,
+          taxAmt:     parseNum(cells[COL.tax]),
+          netAmt:     parseNum(cells[COL.net]),
+          perShare:   shares > 0 ? gross / shares : 0,
+        });
+      } catch (e) {
+        errors.push({ row: i + 1, line: lines[i].substring(0, 80), reason: e.message });
+      }
+    }
+
+    return { records, errors };
+  }
+
+  /** CSVの1行をセル配列に分解（ダブルクォート対応） */
+  function parseCsvLine(line) {
+    const result = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (c === ',' && !inQ) {
+        result.push(cur);
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  /** 口座名正規化 */
+  function normalizeAccount(raw) {
+    if (raw.includes('NISA') || raw.includes('成長')) return 'NISA成長投資枠';
+    if (raw.includes('特定')) return '特定口座';
+    return raw || '特定口座';
+  }
+
+  /** インポート実行メイン */
+  async function runImport() {
+    const statusEl = document.getElementById('import-status');
+    const errSection = document.getElementById('import-error-section');
+    errSection.style.display = 'none';
+    statusEl.textContent = '処理中…';
+    document.getElementById('btn-import').disabled = true;
+
+    const monthInput = document.getElementById('import-month').value;
+    const now = new Date();
+    const yearMonth = monthInput || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const allErrors = [];
+    let positions = [];
+    let dividendRecords = [];
+
+    try {
+      // 保有株CSVパース
+      if (importFiles.holdings) {
+        const result = await parseHoldingsCsv(importFiles.holdings);
+        positions = result.positions;
+        result.errors.forEach(e => allErrors.push({ file: '保有株CSV', ...e }));
+      }
+
+      // 配当金CSVパース
+      if (importFiles.dividend) {
+        const result = await parseDividendCsv(importFiles.dividend);
+        dividendRecords = result.records;
+        result.errors.forEach(e => allErrors.push({ file: '配当金CSV', ...e }));
+      }
+
+      // エラーが多い場合は確認
+      if (allErrors.length > 0) {
+        showImportErrors(allErrors);
+        if (positions.length === 0 && dividendRecords.length === 0) {
+          statusEl.textContent = 'インポート失敗：有効なデータがありません。';
+          document.getElementById('btn-import').disabled = false;
+          return;
+        }
+      }
+
+      // 同一銘柄の複数口座合算処理（銘柄マスタ用）+ スナップショット構築
+      await applyImport(yearMonth, positions, dividendRecords);
+
+      statusEl.textContent = `✓ ${yearMonth} のデータをインポートしました（${positions.length}件）`;
+      showToast('インポート完了', 'ok');
+      renderImportHistory();
+      await checkStorageUsage();
+
+    } catch (e) {
+      statusEl.textContent = 'エラー: ' + e.message;
+      showToast('インポートエラー: ' + e.message, 'err');
+      console.error(e);
+    }
+
+    document.getElementById('btn-import').disabled = false;
+  }
+
+  /** インポートデータをストレージに反映 */
+  async function applyImport(yearMonth, positions, dividendRecords) {
+    const snap = createSnapshot(yearMonth);
+    snap.positions = positions;
+
+    // スナップショット保存（同月は上書き）
+    let snaps = getSnapshots();
+    const idx = snaps.findIndex(s => s.id === yearMonth);
+    if (idx >= 0) snaps[idx] = snap;
+    else snaps.push(snap);
+    snaps.sort((a, b) => a.id.localeCompare(b.id));
+    saveSnapshots(snaps);
+
+    // 銘柄マスタ更新（新規銘柄のみ追加・既存は設定を保持）
+    const master = getStockMaster();
+    for (const p of positions) {
+      if (!master[p.code]) {
+        master[p.code] = createStockMasterEntry(p.code, p.name);
+      } else {
+        master[p.code].name = p.name;
+      }
+    }
+
+    // 配当実績から payMonths と dividendForecast（csv）を設定
+    if (dividendRecords.length) {
+      const hist = getDividendHist();
+      for (const r of dividendRecords) {
+        if (!master[r.code]) master[r.code] = createStockMasterEntry(r.code, r.name);
+        const m = master[r.code];
+
+        // 入金月を記録
+        const month = parseInt(r.payDate.split('/')[1] || r.payDate.split('-')[1] || '0');
+        if (month && !m.payMonths.includes(month)) m.payMonths.push(month);
+
+        // 配当予想をCSV実績で更新（手動上書き・API取得済みでなければ）
+        if (!m.dividendManual && m.dividendSource !== 'api') {
+          if (r.perShare > 0) {
+            m.dividendForecast = r.perShare;
+            m.dividendSource   = 'csv';
+          }
+        }
+
+        // 重複チェックして配当履歴に追加
+        const exists = hist.some(h => h.code === r.code && h.payDate === r.payDate && h.account === r.account);
+        if (!exists) hist.push(r);
+      }
+      saveDividendHist(hist);
+    }
+
+    saveStockMaster(master);
+    renderSettingsTable();
+    renderOBSteps();
+
+    // STEP 4: インポート後に最新株価を適用（キャッシュがあれば即時）
+    const cache = getPriceCache();
+    if (cache && cache.prices) applyPriceCache(cache.prices, false);
+
+    // STEP 5: インポート後に配当予想をバックグラウンド取得
+    triggerDividendFetchAfterImport();
+  }
+
+  /** エラー詳細表示（ERR-04） */
+  function showImportErrors(errors) {
+    const section = document.getElementById('import-error-section');
+    const content = document.getElementById('import-error-content');
+    section.style.display = 'block';
+    let html = `<div style="color:var(--yellow);margin-bottom:10px;">⚠️ ${errors.length} 件のエラーがあります（部分インポートを実行します）</div>`;
+    html += '<div class="table-wrap"><table><thead><tr><th style="text-align:left;">ファイル</th><th>行</th><th style="text-align:left;">内容</th><th style="text-align:left;">原因</th></tr></thead><tbody>';
+    for (const e of errors.slice(0, 20)) {
+      html += `<tr><td>${e.file}</td><td>${e.row}</td><td style="font-size:0.72rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.line)}</td><td>${escHtml(e.reason)}</td></tr>`;
+    }
+    if (errors.length > 20) html += `<tr><td colspan="4" class="muted">…他 ${errors.length - 20} 件</td></tr>`;
+    html += '</tbody></table></div>';
+    content.innerHTML = html;
+  }
+
+  /** インポート履歴レンダリング */
+  function renderImportHistory() {
+    const snaps = getSnapshots();
+    const tbody = document.getElementById('import-history-body');
+    if (!snaps.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">まだインポートがありません。</td></tr>';
+      return;
+    }
+    tbody.innerHTML = [...snaps].reverse().map(s => `
+      <tr>
+        <td>${s.id}</td>
+        <td>${fmtDatetime(s.importedAt)}</td>
+        <td>${s.positions.length}</td>
+        <td style="text-align:right;">
+          <button class="btn btn-ghost btn-sm" onclick="deleteSnapshot('${s.id}')">削除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  /** スナップショット削除 */
+  function deleteSnapshot(id) {
+    if (!confirm(`${id} のデータを削除しますか？`)) return;
+    let snaps = getSnapshots().filter(s => s.id !== id);
+    saveSnapshots(snaps);
+    renderImportHistory();
+    showToast(`${id} を削除しました`, 'info');
+  }
+
+  // ============================================================
+  // STEP 6/7: 保有株サマリー・買い時アラート
+  // ============================================================
+
+  /** テーブルのソート状態 */
+  const dashState = { col: 'yield', dir: 'desc' };
+
+  /** 税引後利回り計算 */
+  function calcAfterTaxYield(p, master) {
+    const m = master[p.code];
+    if (!m || !m.dividendForecast || !p.currentPrice) return null;
+    const coef = TAX_COEF[p.account] ?? 0.79685;
+    return (m.dividendForecast * coef) / p.currentPrice * 100;
+  }
+
+  /** 下落率計算（%、正値が下落） */
+  function calcDropRate(p) {
+    if (!p.avgCost || p.avgCost <= 0) return 0;
+    return (p.avgCost - p.currentPrice) / p.avgCost * 100;
+  }
+
+  /** 買い時バッジ判定（2視点・3種）— ERR-02: dividendForecast=0 はスキップ */
+  function calcBadge(p, master) {
+    const m = master[p.code];
+    if (!m || !m.dividendForecast) return 'none';
+    const yld = calcAfterTaxYield(p, master);
+    if (yld === null) return 'none';
+
+    const isAlert1  = yld >= m.alertThreshold;
+    const dropRate  = calcDropRate(p);
+    const isAlert2A = p.currentPrice <= p.avgCost;
+    const isAlert2B = dropRate >= m.dropRateThreshold;
+    const isAlert2C = isAlert2A && isAlert2B;
+    const alert2    = { A: isAlert2A, B: isAlert2B, C: isAlert2C }[m.alertMode] ?? isAlert2B;
+
+    if (isAlert1 && alert2) return 'double';
+    if (isAlert1)           return 'target';
+    if (alert2)             return 'yield';
+    return 'none';
+  }
+
+  /**
+   * アラートスコア（乖離大きい順ソート用）
+   * バッジ種別 > 利回り余剰(yield-threshold) > 下落率 の優先度で数値化
+   */
+  function calcAlertScore(p, master) {
+    const m       = master[p.code];
+    const badge   = calcBadge(p, master);
+    const yld     = calcAfterTaxYield(p, master) ?? 0;
+    const surplus  = Math.max(0, yld - (m?.alertThreshold ?? 0));
+    const dropRate = Math.max(0, calcDropRate(p));
+    const priority = { double: 10000, target: 1000, yield: 100, none: 0 };
+    return (priority[badge] ?? 0) + surplus * 50 + dropRate;
+  }
+
+  const BADGE_LABEL = { double: '🔥 ダブル買い時', target: '🟡 目標超え', yield: '🟢 利回り向上', none: '－' };
+  const BADGE_CLASS = { double: 'badge-double',   target: 'badge-target',  yield: 'badge-yield',  none: 'badge-none' };
+
+  // ---- ダッシュボード ----
+
+  /** ダッシュボード全体レンダリング */
+  function renderDashboard() {
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+
+    if (!snap || !snap.positions.length) {
+      ['kpi-dividend', 'kpi-yield', 'kpi-eval', 'kpi-count'].forEach(id => {
+        document.getElementById(id).textContent = '－';
+      });
+      document.getElementById('kpi-dividend-sub').textContent = '税引後合計（年間予想）';
+      document.getElementById('kpi-yield-sub').textContent    = '税引後・時価加重平均';
+      document.getElementById('kpi-eval-sub').textContent     = '評価損益';
+      document.getElementById('kpi-count-sub').textContent    = '口座別内訳';
+      renderAlertBanner([], master);
+      renderErr02Notice([], master);
+      renderDashTable();
+      return;
+    }
+
+    const positions = snap.positions;
+    let totalEval = 0, totalCost = 0, totalAfterTax = 0;
+    let nisaCount = 0, tokCount = 0;
+
+    for (const p of positions) {
+      totalEval  += p.evalAmount || 0;
+      totalCost  += (p.avgCost * p.shares) || 0;
+      nisaCount  += p.account === 'NISA成長投資枠' ? 1 : 0;
+      tokCount   += p.account === '特定口座'       ? 1 : 0;
+      const m = master[p.code];
+      if (m?.dividendForecast) {
+        const coef = TAX_COEF[p.account] ?? 0.79685;
+        totalAfterTax += m.dividendForecast * p.shares * coef;
+      }
+    }
+
+    const totalGain = totalEval - totalCost;
+    const pfYield   = totalEval > 0 ? totalAfterTax / totalEval * 100 : 0;
+    const gainClass = totalGain >= 0 ? 'pos' : 'neg';
+    const gainSign  = totalGain >= 0 ? '+' : '';
+
+    document.getElementById('kpi-dividend').textContent     = fmtYen(totalAfterTax);
+    document.getElementById('kpi-dividend-sub').textContent = '税引後合計（年間予想）';
+    document.getElementById('kpi-yield').textContent        = pfYield.toFixed(2) + '%';
+    document.getElementById('kpi-yield-sub').textContent    = '税引後・時価加重平均';
+    document.getElementById('kpi-eval').textContent         = fmtYen(totalEval);
+    document.getElementById('kpi-eval-sub').innerHTML =
+      `評価損益: <span class="${gainClass}">${gainSign}${fmtYen(totalGain)}</span>`;
+    document.getElementById('kpi-count').textContent        = positions.length;
+    document.getElementById('kpi-count-sub').textContent    = `NISA: ${nisaCount}  特定: ${tokCount}`;
+
+    renderAlertBanner(positions, master);
+    renderErr02Notice(positions, master);
+    renderDashTable();
+  }
+
+  // ---- アラートバナー（STEP 7） ----
+
+  /**
+   * 買い時アラートバナー — 上位5件を乖離大きい順で表示
+   * 乖離スコア = バッジ優先度 + 利回り余剰×50 + 下落率
+   */
+  function renderAlertBanner(positions, master) {
+    const listEl  = document.getElementById('alert-banner-list');
+    const countEl = document.getElementById('alert-count-badge');
+
+    const alerts = positions
+      .map(p => ({
+        p,
+        badge:   calcBadge(p, master),
+        yld:     calcAfterTaxYield(p, master),
+        drop:    calcDropRate(p),
+        score:   calcAlertScore(p, master),
+        m:       master[p.code],
+      }))
+      .filter(x => x.badge !== 'none')
+      .sort((a, b) => b.score - a.score);
+
+    if (countEl) countEl.textContent = alerts.length ? `${alerts.length} 件` : '';
+
+    if (!alerts.length) {
+      listEl.innerHTML = '<div class="muted" style="font-size:0.82rem;">現在アラート対象の銘柄はありません。</div>';
+      return;
+    }
+
+    listEl.innerHTML = alerts.slice(0, 5).map(({ p, badge, yld, drop, m }) => {
+      const surplus = (yld !== null && m?.alertThreshold)
+        ? (yld - m.alertThreshold)
+        : null;
+      const surplusHtml = (surplus !== null && surplus > 0)
+        ? `<span style="color:var(--green-light);margin-left:4px;">+${surplus.toFixed(2)}%超</span>`
+        : '';
+      const dropHtml = (badge === 'double' || badge === 'yield') && drop > 0
+        ? `<span style="margin-left:4px;">下落 ${drop.toFixed(1)}%</span>`
+        : '';
+      const acctHtml = `<span class="acct-badge acct-${p.account === 'NISA成長投資枠' ? 'nisa' : 'tok'}">${p.account === 'NISA成長投資枠' ? 'NISA' : '特定'}</span>`;
+
+      return `<div class="alert-item">
+        <span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span>
+        <span class="ai-code">${p.code}</span>
+        <span class="ai-name">${escHtml(p.name)}</span>
+        ${acctHtml}
+        <div class="ai-metrics">
+          <span class="ai-yield" style="font-family:'Roboto Mono',monospace;color:var(--gold);font-weight:700;">
+            ${yld !== null ? yld.toFixed(2) + '%' : '－'}
+          </span>
+          <div class="ai-deviation">
+            ${m?.alertThreshold ? `目標 ${m.alertThreshold}%` : ''}${surplusHtml}${dropHtml}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---- ERR-02 通知（STEP 6） ----
+
+  /** ERR-02: 配当予想未設定銘柄の通知バナーを表示 */
+  function renderErr02Notice(positions, master) {
+    const notice = document.getElementById('err02-notice');
+    const text   = document.getElementById('err02-notice-text');
+    if (!notice) return;
+
+    const missing = positions.filter(p => {
+      const m = master[p.code];
+      return !m || !m.dividendForecast;
+    });
+
+    if (!missing.length) {
+      notice.style.display = 'none';
+      return;
+    }
+    notice.style.display = 'block';
+    const top  = missing.slice(0, 5).map(p => p.code).join('・');
+    const more = missing.length > 5 ? ` 他 ${missing.length - 5} 件` : '';
+    text.textContent =
+      `⚠️ ${missing.length} 銘柄の配当予想が未設定です（${top}${more}）— 利回り・アラート判定をスキップしています。`;
+  }
+
+  // ---- テーブルソート・フィルター（STEP 6） ----
+
+  /** 列ヘッダークリック → ソート列切替（同列なら昇降反転） */
+  function setDashSort(col) {
+    dashState.dir = (dashState.col === col && dashState.dir === 'desc') ? 'asc' : 'desc';
+    dashState.col = col;
+    renderDashTable();
+  }
+
+  /** フィルター変更ハンドラ */
+  function onDashFilterChange() { renderDashTable(); }
+
+  /** ▲▼ インジケーター更新 */
+  function updateSortIndicators() {
+    document.querySelectorAll('.sort-ind').forEach(el => {
+      const col = el.dataset.col;
+      el.className = 'sort-ind' + (col === dashState.col ? ' ' + dashState.dir : '');
+    });
+  }
+
+  // ---- 保有株一覧テーブル（STEP 6） ----
+
+  /** 保有株一覧テーブルレンダリング（ソート・フィルター・ERR-02・合計行） */
+  function renderDashTable() {
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+    const tbody  = document.getElementById('dash-table-body');
+    const tfoot  = document.getElementById('dash-table-foot');
+
+    updateSortIndicators();
+
+    if (!snap || !snap.positions.length) {
+      tbody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center;padding:32px;">
+        CSVをインポートしてください →
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
+      </td></tr>`;
+      if (tfoot) tfoot.style.display = 'none';
+      return;
+    }
+
+    const search        = (document.getElementById('dash-search')?.value        || '').toLowerCase();
+    const filterAccount = document.getElementById('dash-filter-account')?.value || '';
+    const filterAlert   = document.getElementById('dash-filter-alert')?.value   || '';
+
+    let rows = snap.positions
+      .filter(p => {
+        if (search && !p.code.includes(search) && !p.name.toLowerCase().includes(search)) return false;
+        if (filterAccount && p.account !== filterAccount) return false;
+        return true;
+      })
+      .map(p => ({
+        p,
+        m:     master[p.code],
+        badge: calcBadge(p, master),
+        yld:   calcAfterTaxYield(p, master),
+        drop:  calcDropRate(p),
+      }))
+      .filter(row => !filterAlert || row.badge === filterAlert);
+
+    // ---- ソート ----
+    const dir = dashState.dir === 'desc' ? -1 : 1;
+    rows.sort((a, b) => {
+      switch (dashState.col) {
+        case 'code':    return dir * a.p.code.localeCompare(b.p.code);
+        case 'account': return dir * a.p.account.localeCompare(b.p.account);
+        case 'shares':  return dir * (a.p.shares - b.p.shares);
+        case 'eval':    return dir * ((a.p.evalAmount || 0) - (b.p.evalAmount || 0));
+        case 'gain':    return dir * ((a.p.evalGain   || 0) - (b.p.evalGain   || 0));
+        case 'yield':   return dir * ((a.yld ?? -999) - (b.yld ?? -999));
+        default:        return 0;
+      }
+    });
+
+    // 件数バッジ
+    const countEl = document.getElementById('dash-count-badge');
+    if (countEl) {
+      const total = snap.positions.length;
+      countEl.textContent = rows.length === total ? `${total} 銘柄` : `${rows.length} / ${total} 銘柄`;
+    }
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center;padding:16px;">該当銘柄なし</td></tr>`;
+      if (tfoot) tfoot.style.display = 'none';
+      return;
+    }
+
+    // 合計集計
+    let totEval = 0, totGain = 0, totDiv = 0;
+    for (const { p, m } of rows) {
+      totEval += p.evalAmount || 0;
+      totGain += p.evalGain   || 0;
+      if (m?.dividendForecast) {
+        const coef = TAX_COEF[p.account] ?? 0.79685;
+        totDiv += m.dividendForecast * p.shares * coef;
+      }
+    }
+
+    // 行生成
+    tbody.innerHTML = rows.map(({ p, m, badge, yld, drop }) => {
+      const hasForecast = !!(m?.dividendForecast);
+      const gainClass   = (p.evalGain || 0) >= 0 ? 'pos' : 'neg';
+      const gainSign    = (p.evalGain || 0) >= 0 ? '+' : '';
+
+      // 株価ソースインジケータ
+      const srcHtml = p.priceSource === 'api' ? ''
+        : p.priceSource === 'csv'
+          ? ' <span style="color:var(--yellow);font-size:0.68rem;" title="CSV現在値">CSV</span>'
+          : ' <span style="color:var(--red);font-size:0.68rem;" title="取得失敗">取得失敗</span>';
+
+      // 税引後利回りセル（ERR-02: 未設定なら「－」）
+      const yieldHtml = !hasForecast
+        ? '<span class="muted" title="配当予想が未設定です（ERR-02）">－</span>'
+        : yld !== null
+          ? `<span class="${yld >= (m?.alertThreshold || 0) ? 'pos' : ''}">${yld.toFixed(2)}%</span>`
+            + (m?.alertThreshold
+              ? `<br><span style="font-size:0.76em;color:var(--text-muted);">目標 ${m.alertThreshold}%</span>`
+              : '')
+          : '<span class="muted">－</span>';
+
+      // ERR-02: 配当予想未設定行は薄いアンバー背景
+      const rowClass = !hasForecast ? ' class="err02-row"' : '';
+
+      return `<tr${rowClass}>
+        <td>
+          <span style="font-family:'Roboto Mono',monospace;color:var(--text-muted);font-size:0.91em;">${p.code}</span>
+          <span style="margin-left:6px;">${escHtml(p.name)}</span>
+        </td>
+        <td style="text-align:left;">
+          <span class="acct-badge acct-${p.account === 'NISA成長投資枠' ? 'nisa' : 'tok'}">
+            ${p.account === 'NISA成長投資枠' ? 'NISA' : '特定'}
+          </span>
+        </td>
+        <td>${fmtNum(p.shares)}</td>
+        <td>${fmtYen(p.avgCost)}</td>
+        <td>${fmtYen(p.currentPrice)}${srcHtml}</td>
+        <td>${fmtYen(p.evalAmount)}</td>
+        <td class="${gainClass}">
+          ${gainSign}${fmtYen(p.evalGain)}<br>
+          <span style="font-size:0.89em;">${gainSign}${(p.evalGainPct || 0).toFixed(1)}%</span>
+        </td>
+        <td>${hasForecast
+          ? fmtYen(m.dividendForecast)
+          : '<span class="err02-badge" title="設定画面で入力してください">未設定</span>'}</td>
+        <td>${yieldHtml}</td>
+        <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
+      </tr>`;
+    }).join('');
+
+    // フッター合計行
+    if (tfoot) {
+      const totGainClass = totGain >= 0 ? 'pos' : 'neg';
+      const totGainSign  = totGain >= 0 ? '+' : '';
+      tfoot.style.display = '';
+      tfoot.innerHTML = `<tr>
+        <td colspan="5" style="font-weight:700;color:var(--text-muted);">合計 ${rows.length} 銘柄</td>
+        <td style="font-weight:700;">${fmtYen(totEval)}</td>
+        <td class="${totGainClass}" style="font-weight:700;">${totGainSign}${fmtYen(totGain)}</td>
+        <td></td>
+        <td colspan="2" style="color:var(--gold);font-weight:700;">手取配当 ${fmtYen(totDiv)}/年</td>
+      </tr>`;
+    }
+  }
+
+  // ============================================================
+  // 設定画面
+  // ============================================================
+
+  function renderSettings() {
+    const s = getSettings();
+    const keyInput = document.getElementById('settings-apikey');
+    if (keyInput) keyInput.value = s.jquantsApiKey || '';
+    renderOBSteps();
+    renderSettingsTable();
+    checkStorageUsage();
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('settings-apikey').value.trim();
+    const s = getSettings();
+    s.jquantsApiKey = key;
+    saveSettings(s);
+    showToast('APIキーを保存しました', 'ok');
+    renderOBSteps();
+  }
+
+  async function testApiKey() {
+    const key = document.getElementById('settings-apikey').value.trim();
+    const result = document.getElementById('api-test-result');
+    if (!key) { result.textContent = '❌ APIキーが未入力です'; result.style.color = 'var(--red)'; return; }
+    result.textContent = '接続中…';
+    result.style.color = 'var(--text-muted)';
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`https://api.jquants.com/v2/equities/bars/daily?date=${today}&code=7203`, {
+        headers: { 'x-api-key': key }
+      });
+      if (res.ok) {
+        result.textContent = '✓ 接続成功';
+        result.style.color = 'var(--green-light)';
+      } else {
+        const body = await res.json().catch(() => ({}));
+        result.textContent = `❌ ${res.status}: ${body.message || 'エラー'}`;
+        result.style.color = 'var(--red)';
+      }
+    } catch (e) {
+      result.textContent = '❌ 通信エラー: ' + e.message;
+      result.style.color = 'var(--red)';
+    }
+  }
+
+  /** オンボーディング状態レンダリング */
+  function renderOBSteps() {
+    const s = getSettings();
+    const snaps = getSnapshots();
+    const master = getStockMaster();
+
+    const step1 = !!s.jquantsApiKey;
+    const step2 = snaps.length > 0;
+    const codes = snaps.length ? snaps[snaps.length - 1].positions.map(p => p.code) : [];
+    const step3 = codes.length > 0 && codes.every(c => (master[c]?.dividendForecast || 0) > 0);
+    const step4 = Object.values(master).some(m => (m.alertThreshold || 0) > 0);
+
+    const steps = [
+      { label: 'J-Quants APIキーを登録', desc: '設定画面でAPIキーを入力・保存してください', done: step1 },
+      { label: '保有株CSVをインポート', desc: 'インポート画面から保有株CSVを読み込んでください', done: step2 },
+      { label: '配当予想額を確認', desc: '銘柄マスタに配当予想額が設定されているか確認してください', done: step3 },
+      { label: '利回り目標を設定', desc: '銘柄別設定テーブルで目標利回り(%)を入力してください', done: step4 },
+    ];
+
+    const allDone = steps.every(s => s.done);
+    const section = document.getElementById('ob-section');
+
+    if (allDone) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+
+    document.getElementById('ob-steps').innerHTML = steps.map((s, i) => `
+      <div class="ob-step">
+        <div class="ob-num ${s.done ? 'done' : 'todo'}">${s.done ? '✓' : i + 1}</div>
+        <div class="ob-text">
+          <div class="ob-label" style="${s.done ? 'color:var(--text-muted);text-decoration:line-through;' : ''}">${s.label}</div>
+          ${!s.done ? `<div class="ob-desc">${s.desc}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /** 銘柄別設定テーブルレンダリング */
+  function renderSettingsTable() {
+    const master = getStockMaster();
+    const codes = Object.keys(master);
+    const tbody = document.getElementById('settings-table-body');
+    if (!codes.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px;">CSVをインポートするとここに銘柄が表示されます。</td></tr>';
+      return;
+    }
+    tbody.innerHTML = codes.sort().map(code => {
+      const m = master[code];
+      const srcLabel = { api: '🌐 API', csv: '📄 CSV', manual: '✏️ 手動', none: '－' }[m.dividendSource] || '－';
+      // ERR-02: 配当予想が未設定の行をハイライト
+      const isErr02  = !m.dividendForecast || m.dividendForecast === 0;
+      const rowClass = isErr02 ? ' class="err02-row settings-err02"' : '';
+      return `<tr${rowClass}>
+        <td>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.75rem;color:var(--text-muted);">${code}</span>
+          <span style="margin-left:6px;">${escHtml(m.name)}</span>
+        </td>
+        <td>
+          <input type="number" step="0.01" value="${m.dividendForecast || ''}" placeholder="0.00"
+            style="width:90px;" onchange="updateMaster('${code}','dividendForecast',this.value,'manual')">
+        </td>
+        <td><span style="font-size:0.75rem;">${srcLabel}</span></td>
+        <td>
+          <input type="number" step="0.1" value="${m.alertThreshold || ''}" placeholder="3.5"
+            style="width:70px;" onchange="updateMaster('${code}','alertThreshold',this.value)">
+        </td>
+        <td>
+          <select style="width:80px;" onchange="updateMaster('${code}','alertMode',this.value)">
+            <option value="A" ${m.alertMode === 'A' ? 'selected' : ''}>A：平均以下</option>
+            <option value="B" ${m.alertMode === 'B' ? 'selected' : ''}>B：下落率</option>
+            <option value="C" ${m.alertMode === 'C' ? 'selected' : ''}>C：両方</option>
+          </select>
+        </td>
+        <td>
+          <input type="number" step="0.5" value="${m.dropRateThreshold || ''}" placeholder="10.0"
+            style="width:70px;" onchange="updateMaster('${code}','dropRateThreshold',this.value)">
+        </td>
+        <td style="text-align:right;">
+          <button class="btn btn-ghost btn-sm" onclick="resetMasterEntry('${code}')">リセット</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  /** 銘柄マスタ1フィールド更新 */
+  function updateMaster(code, field, value, setSource) {
+    const master = getStockMaster();
+    if (!master[code]) return;
+    if (field === 'dividendForecast') {
+      master[code][field] = parseFloat(value) || 0;
+      master[code].dividendManual = true;
+      master[code].dividendSource = 'manual';
+    } else if (['alertThreshold', 'dropRateThreshold'].includes(field)) {
+      master[code][field] = parseFloat(value) || 0;
+    } else {
+      master[code][field] = value;
+    }
+    saveStockMaster(master);
+    renderOBSteps();
+  }
+
+  /** 銘柄マスタエントリをデフォルトに戻す */
+  function resetMasterEntry(code) {
+    const master = getStockMaster();
+    if (!master[code]) return;
+    const name = master[code].name;
+    master[code] = createStockMasterEntry(code, name);
+    saveStockMaster(master);
+    renderSettingsTable();
+    showToast(`${code} の設定をリセットしました`, 'info');
+  }
+
+  // ============================================================
+  // バックアップ / 全消去
+  // ============================================================
+
+  function exportBackup() {
+    const data = {};
+    Object.values(STORAGE_KEYS).forEach(k => { data[k] = getStorage(k); });
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hdp_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        Object.entries(data).forEach(([k, v]) => {
+          if (v !== null) setStorage(k, v);
+        });
+        showToast('バックアップを読み込みました', 'ok');
+        renderDashboard();
+        renderSettings();
+        renderImportHistory();
+      } catch (err) {
+        showToast('バックアップ読み込みエラー: ' + err.message, 'err');
+      }
+    };
+    reader.readAsText(file);
+    input.value = '';
+  }
+
+  function clearAllData() {
+    if (!confirm('すべてのデータを消去しますか？この操作は取り消せません。')) return;
+    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    showToast('全データを消去しました', 'info');
+    renderDashboard();
+    renderSettings();
+    renderImportHistory();
+  }
+
+  // ============================================================
+  // フォーマットユーティリティ
+  // ============================================================
+
+  function fmtYen(n) {
+    if (n == null || isNaN(n)) return '－';
+    return '¥' + Math.round(n).toLocaleString('ja-JP');
+  }
+
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return '－';
+    return n.toLocaleString('ja-JP');
+  }
+
+  function fmtDatetime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ============================================================
+  // テーブル文字サイズ切替 S/M/L
+  // ============================================================
+
+  const TABLE_SIZES = { S: '0.9rem', M: '1.1rem', L: '1.25rem' };
+  const TBL_SIZE_KEY = 'hdp_tbl_size';
+
+  /** S/M/L ボタン押下 → CSS変数更新 + LocalStorage保存 */
+  function setTableSize(size) {
+    if (!TABLE_SIZES[size]) return;
+    localStorage.setItem(TBL_SIZE_KEY, size);
+    applyTableSize(size);
+  }
+
+  /** CSS変数とボタンハイライトを反映 */
+  function applyTableSize(size) {
+    document.documentElement.style.setProperty('--dash-tbl-size', TABLE_SIZES[size] || '1.0rem');
+    ['S', 'M', 'L'].forEach(s => {
+      const btn = document.getElementById('tblsize-' + s);
+      if (btn) btn.className = 'btn-tblsize' + (s === size ? ' active' : '');
+    });
+  }
+
+  /** 起動時に保存済みサイズを復元（デフォルト M） */
+  function loadTableSize() {
+    const saved = localStorage.getItem(TBL_SIZE_KEY) || 'M';
+    applyTableSize(saved);
+  }
+
+  // ============================================================
+  // STEP 4: J-Quants API V2 株価自動取得
+  // ============================================================
+
+  /** ページング対応 API フェッチ（daily_quotes / statements 両対応） */
+  async function fetchWithPaging(url, headers) {
+    let results = [];
+    let paginationKey = null;
+    do {
+      const sep = url.includes('?') ? '&' : '?';
+      const fullUrl = paginationKey
+        ? `${url}${sep}pagination_key=${encodeURIComponent(paginationKey)}`
+        : url;
+      const res = await fetch(fullUrl, { headers });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(`HTTP ${res.status}: ${body.message || res.statusText}`);
+      }
+      const data = await res.json();
+      results = results.concat(data.daily_quotes ?? data.statements ?? []);
+      paginationKey = data.pagination_key ?? null;
+    } while (paginationKey);
+    return results;
+  }
+
+  /** 直近の営業日を返す（土日を跳び越えて最大5日前まで） */
+  function getRecentBusinessDate() {
+    const d = new Date();
+    for (let i = 0; i < 6; i++) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) return d.toISOString().slice(0, 10);
+      d.setDate(d.getDate() - 1);
+    }
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  /** 株価取得メイン（1日1回キャッシュ制御） */
+  async function fetchAllPrices() {
+    const s = getSettings();
+    if (!s.jquantsApiKey) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const cache = getPriceCache();
+
+    // 当日キャッシュが有効 → API呼び出し不要
+    if (cache && cache.date === today && Object.keys(cache.prices || {}).length > 0) {
+      applyPriceCache(cache.prices, false);
+      setNavStatus(`株価: ${today} (キャッシュ)`, 'ok');
+      return;
+    }
+
+    setNavStatus('株価取得中…', 'loading');
+    clearErr01();
+
+    try {
+      const targetDate = getRecentBusinessDate();
+      const items = await fetchWithPaging(
+        `https://api.jquants.com/v2/equities/bars/daily?date=${targetDate}`,
+        { 'x-api-key': s.jquantsApiKey }
+      );
+
+      if (!items.length) throw new Error(`${targetDate} のデータが空です（休場日の可能性）`);
+
+      const prices = {};
+      for (const item of items) {
+        if (item.Code && item.Close != null) {
+          prices[String(item.Code).slice(0, 4)] = item.Close;
+        }
+      }
+
+      savePriceCache(today, prices);
+      applyPriceCache(prices, true);
+      setNavStatus(`株価: ${targetDate} 更新済`, 'ok');
+      showToast(`株価を更新しました（${Object.keys(prices).length} 銘柄）`, 'ok');
+
+    } catch (e) {
+      setNavStatus('株価取得失敗', 'err');
+      showErr01Banner(e.message);
+      console.error('fetchAllPrices:', e);
+      // フォールバック: スナップショット中の CSV 現在値をそのまま維持
+    }
+  }
+
+  /** 再取得ボタン押下 → キャッシュ無効化して再フェッチ */
+  async function retryFetchPrices() {
+    setStorage(STORAGE_KEYS.PRICE_CACHE, null);
+    localStorage.removeItem(STORAGE_KEYS.PRICE_CACHE);
+    await fetchAllPrices();
+  }
+
+  /** 株価をスナップショットの最新月に反映 */
+  function applyPriceCache(prices, showRender) {
+    const snaps = getSnapshots();
+    if (!snaps.length) return;
+
+    const latest = snaps[snaps.length - 1];
+    let updated = 0;
+
+    for (const p of latest.positions) {
+      const price = prices[p.code];
+      if (price != null && price > 0) {
+        p.currentPrice = price;
+        p.priceSource  = 'api';
+        p.evalAmount   = price * p.shares;
+        p.evalGain     = p.evalAmount - p.avgCost * p.shares;
+        p.evalGainPct  = p.avgCost > 0 ? (price - p.avgCost) / p.avgCost * 100 : 0;
+        updated++;
+      }
+    }
+
+    if (updated > 0) {
+      saveSnapshots(snaps);
+      if (showRender && document.getElementById('screen-dashboard').classList.contains('active')) {
+        renderDashboard();
+      }
+    }
+  }
+
+  /** ナビバーの API ステータス表示 */
+  function setNavStatus(msg, type) {
+    const el = document.getElementById('nav-api-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'status-' + type;
+  }
+
+  /** ERR-01バナー表示 */
+  function showErr01Banner(reason) {
+    const el = document.getElementById('err01-banner');
+    if (el) el.style.display = 'block';
+    const r = document.getElementById('err01-reason');
+    if (r) r.textContent = reason ? `原因: ${reason}` : '';
+  }
+
+  /** ERR-01バナーを閉じる */
+  function clearErr01() {
+    const el = document.getElementById('err01-banner');
+    if (el) el.style.display = 'none';
+  }
+
+  // ============================================================
+  // STEP 5: J-Quants /fins/statements 配当予想バックグラウンド取得
+  // ============================================================
+
+  let _dividendFetchAborted = false;
+
+  /** 週1回チェック → 必要なら自動取得 */
+  async function scheduleDividendFetch() {
+    const s = getSettings();
+    if (!s.jquantsApiKey) return;
+
+    const lastFetch = s.lastDividendFetchDate;
+    const daysSince = lastFetch
+      ? (Date.now() - new Date(lastFetch)) / 86400000
+      : Infinity;
+
+    if (daysSince >= 7) {
+      await fetchAllDividendForecasts();
+    }
+  }
+
+  /** 全銘柄の配当予想を順次取得（3秒間隔・バックグラウンド） */
+  async function fetchAllDividendForecasts() {
+    const s = getSettings();
+    if (!s.jquantsApiKey) {
+      showToast('APIキーが未設定です。設定画面で登録してください。', 'err');
+      return;
+    }
+
+    const master = getStockMaster();
+    // 手動上書き銘柄はスキップ
+    const codes = Object.keys(master).filter(c => !master[c].dividendManual);
+    if (!codes.length) {
+      showToast('取得対象銘柄がありません（全て手動設定済み）', 'info');
+      return;
+    }
+
+    _dividendFetchAborted = false;
+    let successCount = 0;
+    let failCount    = 0;
+
+    showDividendProgress(0, codes.length, '');
+
+    for (let i = 0; i < codes.length; i++) {
+      if (_dividendFetchAborted) {
+        showToast(`配当予想取得をキャンセルしました（${i}/${codes.length}）`, 'info');
+        break;
+      }
+
+      const code = codes[i];
+      updateDividendProgress(i + 1, codes.length, code);
+
+      try {
+        const items = await fetchWithPaging(
+          `https://api.jquants.com/v1/fins/statements?code=${code}`,
+          { 'x-api-key': s.jquantsApiKey }
+        );
+        const forecast = extractAnnualDividend(items);
+        if (forecast !== null) {
+          const m = master[code];
+          if (!m.dividendManual) {
+            m.dividendForecast = forecast;
+            m.dividendSource   = 'api';
+          }
+          successCount++;
+        }
+      } catch (e) {
+        failCount++;
+        console.warn(`配当予想取得失敗 [${code}]:`, e.message);
+      }
+
+      // 最後の銘柄以外は3秒待機（APIレート制限対策）
+      if (i < codes.length - 1 && !_dividendFetchAborted) {
+        await sleep(3000);
+      }
+    }
+
+    if (!_dividendFetchAborted) {
+      // 取得日を記録
+      const s2 = getSettings();
+      s2.lastDividendFetchDate = new Date().toISOString();
+      saveSettings(s2);
+    }
+
+    saveStockMaster(master);
+    hideDividendProgress();
+
+    // UI更新
+    renderSettingsTable();
+    renderOBSteps();
+    if (document.getElementById('screen-dashboard').classList.contains('active')) {
+      renderDashboard();
+    }
+
+    if (!_dividendFetchAborted) {
+      const msg = failCount > 0
+        ? `配当予想更新完了（成功 ${successCount} 件・失敗 ${failCount} 件）`
+        : `配当予想を更新しました（${successCount} 銘柄）`;
+      showToast(msg, failCount > 0 ? 'info' : 'ok', 5000);
+    }
+  }
+
+  /** statements レスポンスから年間予想配当額（税引前・1株）を抽出 */
+  function extractAnnualDividend(items) {
+    if (!items || !items.length) return null;
+
+    // 開示日が新しい順にソート
+    const sorted = [...items].sort((a, b) =>
+      (b.DisclosedDate || '').localeCompare(a.DisclosedDate || '')
+    );
+
+    for (const item of sorted) {
+      // パターン1: 年間予想配当額フィールドが直接ある
+      const annual = parseFloat(item.ForecastAnnualDividendPerShare);
+      if (!isNaN(annual) && annual > 0) return annual;
+
+      // パターン2: 各四半期予想の合計
+      const q1 = parseFloat(item.ForecastDividendPerShare1stQuarter)    || 0;
+      const q2 = parseFloat(item.ForecastDividendPerShare2ndQuarter)    || 0;
+      const q3 = parseFloat(item.ForecastDividendPerShare3rdQuarter)    || 0;
+      const q4 = parseFloat(item.ForecastDividendPerShareFiscalYearEnd) || 0;
+      const sum = q1 + q2 + q3 + q4;
+      if (sum > 0) return sum;
+    }
+    return null;
+  }
+
+  /** 配当予想取得をキャンセル */
+  function abortDividendFetch() {
+    _dividendFetchAborted = true;
+    hideDividendProgress();
+  }
+
+  /** CSVインポート直後に配当予想取得をトリガー（週1回制限なし） */
+  function triggerDividendFetchAfterImport() {
+    const s = getSettings();
+    if (!s.jquantsApiKey) return;
+    // fire-and-forget: インポート完了をブロックしない
+    fetchAllDividendForecasts().catch(e => console.error('dividend fetch error:', e));
+  }
+
+  /** プログレスパネルを表示 */
+  function showDividendProgress(current, total, code) {
+    const panel = document.getElementById('div-fetch-panel');
+    if (panel) panel.style.display = 'block';
+    updateDividendProgress(current, total, code);
+  }
+
+  /** プログレスパネルの進捗を更新 */
+  function updateDividendProgress(current, total, code) {
+    const pct = total > 0 ? Math.round(current / total * 100) : 0;
+    const textEl = document.getElementById('div-fetch-text');
+    const barEl  = document.getElementById('div-fetch-bar');
+    if (textEl) textEl.textContent = `${current} / ${total} 銘柄処理中… (${code})`;
+    if (barEl)  barEl.style.width = pct + '%';
+  }
+
+  /** プログレスパネルを非表示 */
+  function hideDividendProgress() {
+    const panel = document.getElementById('div-fetch-panel');
+    if (panel) panel.style.display = 'none';
+  }
+
+  /** 待機ユーティリティ */
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ============================================================
+  // 初期化
+  // ============================================================
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 今月をデフォルト月に設定
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('import-month').value = ym;
+
+    // テーブル文字サイズを復元（LocalStorage → デフォルト M）
+    loadTableSize();
+
+    // 初期画面レンダリング
+    renderDashboard();
+    renderOBSteps();
+    checkStorageUsage();
+
+    // STEP 4: 株価自動取得（1日1回・非同期）
+    fetchAllPrices().catch(e => console.error('初期株価取得エラー:', e));
+
+    // STEP 5: 配当予想取得（週1回・バックグラウンド）
+    scheduleDividendFetch().catch(e => console.error('配当予想スケジュールエラー:', e));
+  });
+  </script>
+</body>
+</html>
