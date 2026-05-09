@@ -165,12 +165,18 @@
       white-space: nowrap;
     }
     th:first-child { text-align: left; }
+    /* sticky が効くよう overflow-x: auto を解除（scroll container になるため）*/
+    #dash-table-wrap,
+    #settings-table-wrap {
+      overflow: visible;
+    }
     /* 保有株一覧・銘柄別設定テーブルのヘッダーをスクロール追従 */
     #dash-table thead th,
     #settings-table thead th {
       position: sticky;
       top: var(--nav-h);
       z-index: 10;
+      background: var(--bg3);
     }
     td {
       padding: 8px 10px;
@@ -616,7 +622,7 @@
           </div>
         </div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" id="dash-table-wrap">
         <table id="dash-table">
           <thead>
             <tr>
@@ -695,7 +701,7 @@
     <!-- 銘柄別設定 -->
     <div class="section-wrap">
       <div class="section-title">銘柄別設定</div>
-      <div class="table-wrap">
+      <div class="table-wrap" id="settings-table-wrap">
         <table id="settings-table">
           <thead>
             <tr>
