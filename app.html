@@ -251,6 +251,7 @@
 
     /* ===== ドロップゾーン ===== */
     .dropzone {
+      position: relative;
       border: 2px dashed var(--border);
       border-radius: 8px;
       padding: 32px;
@@ -269,6 +270,21 @@
       color: var(--green-light);
     }
     .dropzone-icon { font-size: 2rem; margin-bottom: 8px; }
+    .dz-clear-btn {
+      display: none;
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1;
+      padding: 2px 4px;
+      cursor: pointer;
+    }
+    .dz-clear-btn:hover { color: var(--text); }
+    .dropzone.loaded .dz-clear-btn { display: block; }
 
     /* ===== オンボーディング ===== */
     .ob-step {
@@ -708,6 +724,7 @@
       <div>
         <div style="font-size:0.85rem;font-weight:700;margin-bottom:8px;color:var(--gold);">① 保有株CSV（楽天証券）</div>
         <div class="dropzone" id="dz-holdings" ondragover="dzDragOver(event,'holdings')" ondragleave="dzDragLeave(event,'holdings')" ondrop="dzDrop(event,'holdings')" onclick="document.getElementById('file-holdings').click()">
+          <button class="dz-clear-btn" id="dz-holdings-clear" onclick="event.stopPropagation();clearOneImportFile('holdings')" title="選択解除">✕</button>
           <div class="dropzone-icon">📄</div>
           <div>ドラッグ&ドロップ または クリックで選択</div>
           <div style="font-size:0.75rem;margin-top:4px;">保有株一覧.csv（UTF-8）</div>
@@ -719,6 +736,7 @@
       <div>
         <div style="font-size:0.85rem;font-weight:700;margin-bottom:8px;color:var(--gold);">② 配当金CSV（楽天証券）</div>
         <div class="dropzone" id="dz-dividend" ondragover="dzDragOver(event,'dividend')" ondragleave="dzDragLeave(event,'dividend')" ondrop="dzDrop(event,'dividend')" onclick="document.getElementById('file-dividend').click()">
+          <button class="dz-clear-btn" id="dz-dividend-clear" onclick="event.stopPropagation();clearOneImportFile('dividend')" title="選択解除">✕</button>
           <div class="dropzone-icon">💰</div>
           <div>ドラッグ&ドロップ または クリックで選択</div>
           <div style="font-size:0.75rem;margin-top:4px;">配当金入金履歴.csv（CP932）</div>
@@ -1051,6 +1069,15 @@
     });
     document.getElementById('import-error-section').style.display = 'none';
     document.getElementById('import-status').textContent = '';
+    updateImportButton();
+  }
+
+  function clearOneImportFile(type) {
+    importFiles[type] = null;
+    const dz = document.getElementById('dz-' + type);
+    dz.classList.remove('loaded');
+    document.getElementById('dz-' + type + '-name').textContent = '';
+    document.getElementById('file-' + type).value = '';
     updateImportButton();
   }
 
@@ -2261,17 +2288,17 @@
     );
 
     for (const item of sorted) {
-      // パターン1: 年間予想配当額フィールドが直接ある
-      const annual = parseFloat(item.ForecastAnnualDividendPerShare);
-      if (!isNaN(annual) && annual > 0) return annual;
-
-      // パターン2: 各四半期予想の合計
+      // パターン1: 四半期予想の合算を優先（分割調整済みフィールド）
       const q1 = parseFloat(item.ForecastDividendPerShare1stQuarter)    || 0;
       const q2 = parseFloat(item.ForecastDividendPerShare2ndQuarter)    || 0;
       const q3 = parseFloat(item.ForecastDividendPerShare3rdQuarter)    || 0;
       const q4 = parseFloat(item.ForecastDividendPerShareFiscalYearEnd) || 0;
       const sum = q1 + q2 + q3 + q4;
       if (sum > 0) return sum;
+
+      // パターン2: 四半期合算が0の場合のみ年間予想フィールドにフォールバック
+      const annual = parseFloat(item.ForecastAnnualDividendPerShare);
+      if (!isNaN(annual) && annual > 0) return annual;
     }
     return null;
   }
