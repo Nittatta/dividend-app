@@ -2243,7 +2243,7 @@
 
       try {
         const items = await fetchWithPaging(
-          `https://jquants-proxy.drumsbaka.workers.dev/v1/fins/statements?code=${code}`,
+          `https://jquants-proxy.drumsbaka.workers.dev/v2/fins/summary?code=${code}`,
           { 'x-api-key': s.jquantsApiKey }
         );
         const forecast = extractAnnualDividend(items);
@@ -2291,29 +2291,22 @@
     }
   }
 
-  /** statements レスポンスから年間予想配当額（税引前・1株）を抽出 */
+  /** /v2/fins/summary レスポンスから年間予想配当額（税引前・1株）を抽出 */
   function extractAnnualDividend(items) {
-    if (!items || !items.length) return null;
+    if (!items || !items.length) return 0;
 
-    // 開示日が新しい順にソート
-    const sorted = [...items].sort((a, b) =>
-      (b.DisclosedDate || '').localeCompare(a.DisclosedDate || '')
-    );
+    // 最新の開示日（DiscDate）のレコードを1件取得
+    const latest = [...items].sort((a, b) =>
+      (b.DiscDate || '').localeCompare(a.DiscDate || '')
+    )[0];
 
-    for (const item of sorted) {
-      // パターン1: 四半期予想の合算を優先（分割調整済みフィールド）
-      const q1 = parseFloat(item.ForecastDividendPerShare1stQuarter)    || 0;
-      const q2 = parseFloat(item.ForecastDividendPerShare2ndQuarter)    || 0;
-      const q3 = parseFloat(item.ForecastDividendPerShare3rdQuarter)    || 0;
-      const q4 = parseFloat(item.ForecastDividendPerShareFiscalYearEnd) || 0;
-      const sum = q1 + q2 + q3 + q4;
-      if (sum > 0) return sum;
+    // FDivAnn（今期予想）→ NxFDivAnn（来期予想）→ DivAnn（実績）の順でフォールバック
+    const v = (field) => {
+      const n = parseFloat(latest[field]);
+      return (!isNaN(n) && latest[field] !== '' && latest[field] != null) ? n : null;
+    };
 
-      // パターン2: 四半期合算が0の場合のみ年間予想フィールドにフォールバック
-      const annual = parseFloat(item.ForecastAnnualDividendPerShare);
-      if (!isNaN(annual) && annual > 0) return annual;
-    }
-    return null;
+    return v('FDivAnn') ?? v('NxFDivAnn') ?? v('DivAnn') ?? 0;
   }
 
   /** 配当予想取得をキャンセル */
