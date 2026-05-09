@@ -1935,7 +1935,7 @@
             style="width:70px;" onchange="updateMaster('${code}','alertThreshold',this.value)">
         </td>
         <td>
-          <select style="width:80px;" onchange="updateMaster('${code}','alertMode',this.value)">
+          <select style="min-width:130px;" onchange="updateMaster('${code}','alertMode',this.value)">
             <option value="A" ${m.alertMode === 'A' ? 'selected' : ''}>A：平均以下</option>
             <option value="B" ${m.alertMode === 'B' ? 'selected' : ''}>B：下落率</option>
             <option value="C" ${m.alertMode === 'C' ? 'selected' : ''}>C：両方</option>
