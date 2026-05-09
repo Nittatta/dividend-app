@@ -2061,15 +2061,17 @@
     return results;
   }
 
-  /** 直近の営業日を返す（土日を跳び越えて最大5日前まで） */
+  /** 直近の営業日を返す（JST基準・土日を除いて最大10日さかのぼる） */
   function getRecentBusinessDate() {
-    const d = new Date();
-    for (let i = 0; i < 6; i++) {
-      const dow = d.getDay();
+    const now = new Date();
+    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const d = new Date(jst.toISOString().slice(0, 10));
+    for (let i = 0; i < 10; i++) {
+      const dow = d.getUTCDay();
       if (dow !== 0 && dow !== 6) return d.toISOString().slice(0, 10);
-      d.setDate(d.getDate() - 1);
+      d.setUTCDate(d.getUTCDate() - 1);
     }
-    return new Date().toISOString().slice(0, 10);
+    return jst.toISOString().slice(0, 10);
   }
 
   /** 株価取得メイン（1日1回キャッシュ制御） */
@@ -2077,7 +2079,7 @@
     const s = getSettings();
     if (!s.jquantsApiKey) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const cache = getPriceCache();
 
     // 当日キャッシュが有効 → API呼び出し不要
@@ -2091,13 +2093,23 @@
     clearErr01();
 
     try {
-      const targetDate = getRecentBusinessDate();
-      const items = await fetchWithPaging(
-        `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${targetDate}`,
-        { 'x-api-key': s.jquantsApiKey }
-      );
+      let targetDate = getRecentBusinessDate();
+      let items = [];
 
-      if (!items.length) throw new Error(`${targetDate} のデータが空です（休場日の可能性）`);
+      // 最大5営業日さかのぼって再試行（祝日・未配信対策）
+      for (let attempt = 0; attempt < 5; attempt++) {
+        items = await fetchWithPaging(
+          `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${targetDate}`,
+          { 'x-api-key': s.jquantsApiKey }
+        );
+        if (items.length) break;
+        const d = new Date(targetDate);
+        d.setUTCDate(d.getUTCDate() - 1);
+        while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
+        targetDate = d.toISOString().slice(0, 10);
+      }
+
+      if (!items.length) throw new Error(`${targetDate} のデータが空です（休場日・未配信の可能性）`);
 
       const prices = {};
       for (const item of items) {
