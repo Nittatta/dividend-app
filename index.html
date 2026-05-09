@@ -2295,18 +2295,23 @@
   function extractAnnualDividend(items) {
     if (!items || !items.length) return 0;
 
-    // 最新の開示日（DiscDate）のレコードを1件取得
-    const latest = [...items].sort((a, b) =>
+    // DiscDate 降順（末尾から遡る）で非空の値を探す
+    const sorted = [...items].sort((a, b) =>
       (b.DiscDate || '').localeCompare(a.DiscDate || '')
-    )[0];
+    );
 
-    // FDivAnn（今期予想）→ NxFDivAnn（来期予想）→ DivAnn（実績）の順でフォールバック
-    const v = (field) => {
-      const n = parseFloat(latest[field]);
-      return (!isNaN(n) && latest[field] !== '' && latest[field] != null) ? n : null;
+    const firstValid = (field) => {
+      for (const item of sorted) {
+        const raw = item[field];
+        if (raw !== '' && raw != null) {
+          const n = parseFloat(raw);
+          if (!isNaN(n)) return n;
+        }
+      }
+      return null;
     };
 
-    return v('FDivAnn') ?? v('NxFDivAnn') ?? v('DivAnn') ?? 0;
+    return firstValid('FDivAnn') ?? firstValid('NxFDivAnn') ?? firstValid('DivAnn') ?? 0;
   }
 
   /** 配当予想取得をキャンセル */
