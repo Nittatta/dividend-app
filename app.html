@@ -869,7 +869,7 @@
             <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
             <th>配当予想/株</th>
             <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
-            <th class="th-sort" onclick="setDashSort('costyield')">取得時利回り<span class="sort-ind" data-col="costyield"></span></th>
+              <th class="th-sort" onclick="setDashSort('costyield')" title="簿価利回り（YOC）&#10;= 現在の配当予想 ÷ 平均取得単価（税引後）&#10;時価利回りより高い = 株価上昇中（含み益）&#10;時価利回りより低い = 株価下落中（買増し検討）">簿価利回り <span style="font-size:0.7em;color:var(--text-muted);">YOC</span><span class="sort-ind" data-col="costyield"></span></th>
             <th style="text-align:left;">セクター</th>
             <th>アラート</th>
           </tr>
@@ -2105,15 +2105,23 @@
         <td>${yieldHtml}</td>
         <td>${(() => {
           if (!hasForecast || !p.avgCost) return '<span class="muted">－</span>';
-          const coef = TAX_COEF[p.account] ?? 0.79685;
-          const costYld = m.dividendForecast / p.avgCost * 100 * coef;
+          const coef     = TAX_COEF[p.account] ?? 0.79685;
+          const costYld  = m.dividendForecast / p.avgCost * 100 * coef;
+          const curr     = yld ?? 0;
+          // 時価利回りと比較してインジケーター表示
+          const diff     = curr - costYld;
+          const indHtml  = diff > 0.1
+            ? `<span style="font-size:0.7em;color:var(--green-light);margin-left:4px;" title="時価利回りの方が高い（株価下落・買増し検討）">▲</span>`
+            : diff < -0.1
+            ? `<span style="font-size:0.7em;color:var(--text-muted);margin-left:4px;" title="時価利回りの方が低い（株価上昇・含み益）">▼</span>`
+            : `<span style="font-size:0.7em;color:var(--text-muted);margin-left:4px;" title="時価利回りとほぼ同じ">＝</span>`;
           const isSet = m?.alertThreshold && Math.abs(m.alertThreshold - parseFloat(costYld.toFixed(2))) < 0.01;
-          return `<span style="color:var(--blue-light);">${costYld.toFixed(2)}%</span>`
-            + `<button onclick="setCostYieldAsTarget('${p.code}',${costYld.toFixed(2)})"
-                style="margin-left:6px;padding:1px 6px;font-size:0.68rem;border-radius:3px;
+          return `<span style="color:var(--blue-light);">${costYld.toFixed(2)}%</span>${indHtml}`
+            + `<br><button onclick="setCostYieldAsTarget('${p.code}',${costYld.toFixed(2)})"
+                style="padding:1px 6px;font-size:0.65rem;border-radius:3px;margin-top:2px;
                 border:1px solid var(--border);background:${isSet ? 'var(--blue)' : 'transparent'};
                 color:${isSet ? '#fff' : 'var(--text-muted)'};cursor:pointer;"
-                title="この利回りを目標に設定">${isSet ? '✓設定済' : '目標に設定'}</button>`;
+                title="この値を利回り目標に設定">${isSet ? '✓設定済' : '目標に設定'}</button>`;
         })()}</td>
         <td style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
