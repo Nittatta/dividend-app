@@ -210,6 +210,9 @@
     .badge-target  { background: #4a3a00; color: var(--yellow); }
     .badge-yield   { background: #0a3a1a; color: var(--green-light); }
     .badge-none    { color: var(--text-muted); }
+    [data-theme="light"] .badge-double { background: #c0392b; color: #ffffff; }
+    [data-theme="light"] .badge-target { background: #e67e00; color: #ffffff; }
+    [data-theme="light"] .badge-yield  { background: #1a7a40; color: #ffffff; }
 
     /* ===== プラス・マイナス色 ===== */
     .pos { color: var(--green-light); }
@@ -710,6 +713,7 @@
   <nav id="nav">
     <div class="nav-brand">高配当 PF</div>
     <button class="nav-btn active" onclick="showScreen('dashboard')" id="nav-dashboard">ダッシュボード</button>
+    <button class="nav-btn" onclick="showScreen('holdings')" id="nav-holdings">保有株一覧</button>
     <button class="nav-btn" onclick="showScreen('charts')"   id="nav-charts">推移グラフ</button>
     <button class="nav-btn" onclick="showScreen('dividend')" id="nav-dividend">配当サマリー</button>
     <button class="nav-btn" onclick="showScreen('settings')" id="nav-settings">設定</button>
@@ -800,65 +804,87 @@
       <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:12px;">設定画面へ →</button>
     </div>
 
-    <!-- 保有株一覧テーブル -->
-    <div class="section-wrap">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-        <div class="section-title" style="margin-bottom:0;">
-          保有株一覧
-          <span id="dash-count-badge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;"></span>
+    <!-- 保有株一覧へのリンク -->
+    <div style="text-align:right;margin-top:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('holdings')">保有株一覧を見る →</button>
+    </div>
+
+  </div>
+
+  <!-- ===== 画面1.5: 保有株一覧 ===== -->
+  <div id="screen-holdings" class="screen">
+
+    <!-- ERR-01: 株価取得失敗バナー（複製） -->
+    <div id="err01-banner-h" class="banner banner-err" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <strong>⚠️ 株価の自動取得に失敗しました（ERR-01）</strong><br>
+          <span style="font-size:0.78rem;">現在値列には CSV インポート時の値を表示しています。</span>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="dash-search" placeholder="コード・銘柄名…" style="width:130px;" oninput="onDashFilterChange()">
-          <select id="dash-filter-account" onchange="onDashFilterChange()">
-            <option value="">全口座</option>
-            <option value="NISA成長投資枠">NISA</option>
-            <option value="特定口座">特定</option>
-          </select>
-          <select id="dash-filter-alert" onchange="onDashFilterChange()">
-            <option value="">全アラート</option>
-            <option value="double">🔥 ダブル</option>
-            <option value="target">🟡 目標超え</option>
-            <option value="yield">🟢 利回り向上</option>
-            <option value="none">－ アラートなし</option>
-          </select>
-          <div style="display:flex;gap:2px;margin-left:4px;">
-            <button class="btn-tblsize" id="tblsize-S" onclick="setTableSize('S')">S</button>
-            <button class="btn-tblsize" id="tblsize-M" onclick="setTableSize('M')">M</button>
-            <button class="btn-tblsize" id="tblsize-L" onclick="setTableSize('L')">L</button>
-          </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="retryFetchPrices()">再取得</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('err01-banner-h').style.display='none'">×</button>
         </div>
-      </div>
-      <div class="table-wrap" id="dash-table-wrap">
-        <table id="dash-table">
-          <thead>
-            <tr>
-              <th class="th-sort" onclick="setDashSort('code')">コード / 銘柄<span class="sort-ind" data-col="code"></span></th>
-              <th class="th-sort" style="text-align:left;" onclick="setDashSort('account')">口座<span class="sort-ind" data-col="account"></span></th>
-              <th class="th-sort" onclick="setDashSort('shares')">株数<span class="sort-ind" data-col="shares"></span></th>
-              <th>平均取得単価</th>
-              <th>現在値</th>
-              <th class="th-sort" onclick="setDashSort('eval')">時価評価額<span class="sort-ind" data-col="eval"></span></th>
-              <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
-              <th>配当予想/株</th>
-              <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
-              <th class="th-sort" onclick="setDashSort('costyield')">取得時利回り<span class="sort-ind" data-col="costyield"></span></th>
-              <th style="text-align:left;">セクター</th>
-              <th>アラート</th>
-            </tr>
-          </thead>
-          <tbody id="dash-table-body">
-            <tr>
-              <td colspan="12" class="muted" style="text-align:center;padding:32px;">
-                CSVをインポートしてください →
-                <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
-              </td>
-            </tr>
-          </tbody>
-          <tfoot id="dash-table-foot" style="display:none;"></tfoot>
-        </table>
       </div>
     </div>
 
+    <!-- フィルター・ソート -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin-bottom:0;">
+        保有株一覧
+        <span id="dash-count-badge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;"></span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="dash-search" placeholder="コード・銘柄名…" style="width:130px;" oninput="onDashFilterChange()">
+        <select id="dash-filter-account" onchange="onDashFilterChange()">
+          <option value="">全口座</option>
+          <option value="NISA成長投資枠">NISA</option>
+          <option value="特定口座">特定</option>
+        </select>
+        <select id="dash-filter-alert" onchange="onDashFilterChange()">
+          <option value="">全アラート</option>
+          <option value="double">🔥 ダブル</option>
+          <option value="target">🟡 目標超え</option>
+          <option value="yield">🟢 利回り向上</option>
+          <option value="none">－ アラートなし</option>
+        </select>
+        <div style="display:flex;gap:2px;margin-left:4px;">
+          <button class="btn-tblsize" id="tblsize-S" onclick="setTableSize('S')">S</button>
+          <button class="btn-tblsize" id="tblsize-M" onclick="setTableSize('M')">M</button>
+          <button class="btn-tblsize" id="tblsize-L" onclick="setTableSize('L')">L</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="dash-table-wrap">
+      <table id="dash-table">
+        <thead>
+          <tr>
+            <th class="th-sort" onclick="setDashSort('code')">コード / 銘柄<span class="sort-ind" data-col="code"></span></th>
+            <th class="th-sort" style="text-align:left;" onclick="setDashSort('account')">口座<span class="sort-ind" data-col="account"></span></th>
+            <th class="th-sort" onclick="setDashSort('shares')">株数<span class="sort-ind" data-col="shares"></span></th>
+            <th>平均取得単価</th>
+            <th>現在値</th>
+            <th class="th-sort" onclick="setDashSort('eval')">時価評価額<span class="sort-ind" data-col="eval"></span></th>
+            <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
+            <th>配当予想/株</th>
+            <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
+            <th class="th-sort" onclick="setDashSort('costyield')">取得時利回り<span class="sort-ind" data-col="costyield"></span></th>
+            <th style="text-align:left;">セクター</th>
+            <th>アラート</th>
+          </tr>
+        </thead>
+        <tbody id="dash-table-body">
+          <tr>
+            <td colspan="12" class="muted" style="text-align:center;padding:32px;">
+              CSVをインポートしてください →
+              <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot id="dash-table-foot" style="display:none;"></tfoot>
+      </table>
+    </div>
   </div>
 
   <!-- ===== 画面2: 推移グラフ ===== -->
@@ -1323,6 +1349,7 @@
     document.getElementById('nav-' + id).classList.add('active');
 
     if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
+    if (id === 'holdings')  renderDashTable();
     if (id === 'settings')  renderSettings();
     if (id === 'import')    renderImportHistory();
     if (id === 'sector')    renderSector();
@@ -1803,7 +1830,6 @@
       document.getElementById('kpi-count-sub').textContent    = '口座別内訳';
       renderAlertBanner([], master);
       renderErr02Notice([], master);
-      renderDashTable();
       renderDashSectorMini();
       return;
     }
@@ -1843,7 +1869,6 @@
 
     renderAlertBanner(positions, master);
     renderErr02Notice(positions, master);
-    renderDashTable();
     renderDashSectorMini();
   }
 
@@ -2082,7 +2107,13 @@
           if (!hasForecast || !p.avgCost) return '<span class="muted">－</span>';
           const coef = TAX_COEF[p.account] ?? 0.79685;
           const costYld = m.dividendForecast / p.avgCost * 100 * coef;
-          return `<span style="color:var(--blue-light);">${costYld.toFixed(2)}%</span>`;
+          const isSet = m?.alertThreshold && Math.abs(m.alertThreshold - parseFloat(costYld.toFixed(2))) < 0.01;
+          return `<span style="color:var(--blue-light);">${costYld.toFixed(2)}%</span>`
+            + `<button onclick="setCostYieldAsTarget('${p.code}',${costYld.toFixed(2)})"
+                style="margin-left:6px;padding:1px 6px;font-size:0.68rem;border-radius:3px;
+                border:1px solid var(--border);background:${isSet ? 'var(--blue)' : 'transparent'};
+                color:${isSet ? '#fff' : 'var(--text-muted)'};cursor:pointer;"
+                title="この利回りを目標に設定">${isSet ? '✓設定済' : '目標に設定'}</button>`;
         })()}</td>
         <td style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
@@ -2235,6 +2266,16 @@
         </td>
       </tr>`;
     }).join('');
+  }
+
+  /** 取得時利回りを alertThreshold に設定 */
+  function setCostYieldAsTarget(code, yld) {
+    const master = getStockMaster();
+    if (!master[code]) return;
+    master[code].alertThreshold = parseFloat(yld.toFixed(2));
+    saveStockMaster(master);
+    showToast(`${master[code].name} の目標利回りを ${yld.toFixed(2)}% に設定しました`, 'ok');
+    renderDashTable();
   }
 
   /** 銘柄マスタ1フィールド更新 */
