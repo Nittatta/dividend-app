@@ -2115,7 +2115,7 @@
       for (const item of items) {
         const price = item.AdjC ?? item.C ?? item.Close;
         if (item.Code && price != null) {
-          prices[String(item.Code).slice(0, 4)] = price;
+          prices[String(item.Code).replace(/0$/, '')] = price;
         }
       }
 
