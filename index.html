@@ -2316,13 +2316,13 @@
           { 'x-api-key': s.jquantsApiKey }
         );
         const forecast = extractAnnualDividend(items);
-        if (forecast !== null) {
+        if (forecast > 0) {
           const m = master[code];
           if (!m.dividendManual) {
             m.dividendForecast = forecast;
             m.dividendSource   = 'api';
+            successCount++;
           }
-          successCount++;
         }
       } catch (e) {
         failCount++;
