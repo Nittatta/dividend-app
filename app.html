@@ -2096,8 +2096,8 @@
       let targetDate = getRecentBusinessDate();
       let items = [];
 
-      // 最大5営業日さかのぼって再試行（祝日・未配信対策）
-      for (let attempt = 0; attempt < 5; attempt++) {
+      // 最大15営業日さかのぼって再試行（祝日・未配信対策）
+      for (let attempt = 0; attempt < 15; attempt++) {
         items = await fetchWithPaging(
           `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${targetDate}`,
           { 'x-api-key': s.jquantsApiKey }
