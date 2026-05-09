@@ -1745,14 +1745,14 @@
         </td>
         <td>${fmtNum(p.shares)}</td>
         <td>${fmtYen(p.avgCost)}</td>
-        <td>${fmtPrice(p.currentPrice)}${srcHtml}</td>
+        <td>${fmtYen(p.currentPrice)}${srcHtml}</td>
         <td>${fmtYen(p.evalAmount)}</td>
         <td class="${gainClass}">
           ${gainSign}${fmtYen(p.evalGain)}<br>
           <span style="font-size:0.89em;">${gainSign}${(p.evalGainPct || 0).toFixed(1)}%</span>
         </td>
         <td>${hasForecast
-          ? fmtPrice(m.dividendForecast)
+          ? fmtYen(m.dividendForecast)
           : '<span class="err02-badge" title="設定画面で入力してください">未設定</span>'}</td>
         <td>${yieldHtml}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
@@ -1988,11 +1988,6 @@
   // ============================================================
 
   function fmtYen(n) {
-    if (n == null || isNaN(n)) return '－';
-    return '¥' + Math.round(n).toLocaleString('ja-JP');
-  }
-
-  function fmtPrice(n) {
     if (n == null || isNaN(n)) return '－';
     const fixed = Number(n).toFixed(1);
     const [int, dec] = fixed.split('.');
