@@ -516,6 +516,152 @@
     .dfp-cancel { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; padding: 0; }
     .dfp-cancel:hover { color: var(--red); }
     #div-fetch-text { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
+
+    /* ===== F-07 セクター分散 ===== */
+    .sector-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .sector-grid { grid-template-columns: 1fr; }
+    }
+    .sector-donut-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    .sector-donut-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+    .sector-donut-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .sector-donut-value {
+      font-family: 'Roboto', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .sector-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .sector-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .sector-legend-item:hover { background: var(--bg3); }
+    .sector-legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sector-legend-name {
+      flex: 1;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sector-legend-pct {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      min-width: 40px;
+      text-align: right;
+    }
+    .sector-legend-amt {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text);
+      min-width: 80px;
+      text-align: right;
+    }
+    .sector-type-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .sector-type-tab {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .sector-type-tab.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+    .sector-warn-badge {
+      display: inline-block;
+      background: #3a1a00;
+      color: var(--yellow);
+      border: 1px solid #5a3a00;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      margin-left: 6px;
+    }
+    .dash-sector-mini {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .dash-sector-mini-chart {
+      width: 120px;
+      height: 120px;
+      flex-shrink: 0;
+    }
+    .dash-sector-mini-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 0.75rem;
+      overflow: hidden;
+    }
+    .dsml-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dsml-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dsml-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .dsml-pct {
+      font-family: 'Roboto Mono', monospace;
+      color: var(--text-muted);
+      min-width: 36px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -528,6 +674,7 @@
     <button class="nav-btn" onclick="showScreen('dividend')" id="nav-dividend">配当サマリー</button>
     <button class="nav-btn" onclick="showScreen('settings')" id="nav-settings">設定</button>
     <button class="nav-btn" onclick="showScreen('import')"   id="nav-import">CSVインポート</button>
+    <button class="nav-btn" onclick="showScreen('sector')" id="nav-sector">セクター分散</button>
     <button id="btn-theme" onclick="toggleTheme()" title="テーマ切り替え">🌙</button>
     <span id="nav-api-status"></span>
   </nav>
@@ -643,12 +790,13 @@
               <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
               <th>配当予想/株</th>
               <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
+              <th style="text-align:left;">セクター</th>
               <th>アラート</th>
             </tr>
           </thead>
           <tbody id="dash-table-body">
             <tr>
-              <td colspan="10" class="muted" style="text-align:center;padding:32px;">
+              <td colspan="11" class="muted" style="text-align:center;padding:32px;">
                 CSVをインポートしてください →
                 <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
               </td>
@@ -658,6 +806,21 @@
         </table>
       </div>
     </div>
+
+    <!-- ダッシュボード セクターミニ -->
+    <div class="section-wrap" id="dash-sector-section" style="display:none;">
+      <div class="section-title" style="margin-bottom:10px;">
+        セクター構成
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('sector')" style="margin-left:8px;font-size:0.72rem;">詳細 →</button>
+      </div>
+      <div class="card">
+        <div class="dash-sector-mini">
+          <canvas id="dash-sector-mini-chart" class="dash-sector-mini-chart"></canvas>
+          <div class="dash-sector-mini-legend" id="dash-sector-mini-legend"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ===== 画面2: 推移グラフ ===== -->
@@ -670,6 +833,73 @@
   <div id="screen-dividend" class="screen">
     <div class="section-title">配当サマリー</div>
     <div class="banner banner-info">Phase 2 で実装予定です。</div>
+  </div>
+
+  <!-- ===== 画面6: セクター分散 ===== -->
+  <div id="screen-sector" class="screen">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin-bottom:0;">
+        📊 セクター分散
+        <span id="sector-warn-label" style="display:none;"></span>
+      </div>
+      <div class="sector-type-tabs">
+        <button class="sector-type-tab active" id="stab-eval"  onclick="setSectorMode('eval')">時価評価額</button>
+        <button class="sector-type-tab"        id="stab-div"   onclick="setSectorMode('div')">配当金</button>
+        <button class="sector-type-tab"        id="stab-sens"  onclick="setSectorMode('sens')">景気感応度</button>
+      </div>
+    </div>
+
+    <div id="sector-warn-banner" class="banner banner-warn" style="display:none;margin-bottom:16px;">
+      <strong>⚠️ セクター集中警告（30%超）</strong>
+      <div id="sector-warn-detail" style="margin-top:4px;font-size:0.82rem;"></div>
+    </div>
+
+    <div id="sector-empty" class="card" style="text-align:center;padding:32px;color:var(--text-muted);">
+      CSVをインポートするとセクター分散が表示されます。
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:12px;">インポート画面へ</button>
+    </div>
+
+    <div id="sector-content" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="sector-grid">
+          <div class="sector-donut-wrap">
+            <canvas id="sector-donut-chart" width="300" height="300"></canvas>
+            <div class="sector-donut-center">
+              <div class="sector-donut-label" id="sector-center-label">時価評価額合計</div>
+              <div class="sector-donut-value" id="sector-center-value">－</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);padding:0 8px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+              <span>セクター</span>
+              <div style="display:flex;gap:16px;">
+                <span style="min-width:40px;text-align:right;">構成比</span>
+                <span style="min-width:80px;text-align:right;" id="sector-legend-amt-header">評価額（円）</span>
+              </div>
+            </div>
+            <div class="sector-legend" id="sector-legend"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-wrap">
+        <div class="section-title" id="sector-table-title">セクター別 銘柄明細</div>
+        <div class="table-wrap">
+          <table id="sector-detail-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">セクター</th>
+                <th style="text-align:left;">コード / 銘柄</th>
+                <th>評価額（円）</th>
+                <th>配当予想（円）</th>
+                <th>構成比</th>
+              </tr>
+            </thead>
+            <tbody id="sector-detail-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== 画面4: 設定 ===== -->
@@ -1057,6 +1287,7 @@
     if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
     if (id === 'settings')  renderSettings();
     if (id === 'import')    renderImportHistory();
+    if (id === 'sector')    renderSector();
   }
 
   // ============================================================
@@ -1535,6 +1766,7 @@
       renderAlertBanner([], master);
       renderErr02Notice([], master);
       renderDashTable();
+      renderDashSectorMini();
       return;
     }
 
@@ -1574,6 +1806,7 @@
     renderAlertBanner(positions, master);
     renderErr02Notice(positions, master);
     renderDashTable();
+    renderDashSectorMini();
   }
 
   // ---- アラートバナー（STEP 7） ----
@@ -1690,7 +1923,7 @@
     updateSortIndicators();
 
     if (!snap || !snap.positions.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center;padding:32px;">
+      tbody.innerHTML = `<tr><td colspan="11" class="muted" style="text-align:center;padding:32px;">
         CSVをインポートしてください →
         <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
       </td></tr>`;
@@ -1739,7 +1972,7 @@
     }
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center;padding:16px;">該当銘柄なし</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="muted" style="text-align:center;padding:16px;">該当銘柄なし</td></tr>`;
       if (tfoot) tfoot.style.display = 'none';
       return;
     }
@@ -1802,6 +2035,7 @@
           ? fmtYen(m.dividendForecast)
           : '<span class="err02-badge" title="設定画面で入力してください">未設定</span>'}</td>
         <td>${yieldHtml}</td>
+        <td style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
       </tr>`;
     }).join('');
@@ -1812,7 +2046,7 @@
       const totGainSign  = totGain >= 0 ? '+' : '';
       tfoot.style.display = '';
       tfoot.innerHTML = `<tr>
-        <td colspan="5" style="font-weight:700;color:var(--text-muted);">合計 ${rows.length} 銘柄</td>
+        <td colspan="6" style="font-weight:700;color:var(--text-muted);">合計 ${rows.length} 銘柄</td>
         <td style="font-weight:700;">${fmtYen(totEval)}</td>
         <td class="${totGainClass}" style="font-weight:700;">${totGainSign}${fmtYen(totGain)}</td>
         <td></td>
@@ -2258,6 +2492,280 @@
   function clearErr01() {
     const el = document.getElementById('err01-banner');
     if (el) el.style.display = 'none';
+  }
+
+  // ============================================================
+  // F-07: セクター分散
+  // ============================================================
+
+  const SECTOR_COLORS = [
+    '#c8a96e','#4a7fd4','#2e6b4f','#e05555','#f0c040',
+    '#6a9fe4','#3d9668','#ff8080','#8888aa','#9b59b6',
+    '#e67e22','#1abc9c','#e74c3c','#3498db','#2ecc71',
+    '#f39c12','#d35400','#27ae60','#8e44ad','#16a085',
+  ];
+  const SENS_COLORS = { cyclical: '#e05555', defensive: '#2e6b4f' };
+  const SENS_LABELS = { cyclical: '景気敏感', defensive: 'ディフェンシブ' };
+
+  let _sectorMode      = 'eval';
+  let _sectorChart     = null;
+  let _dashSectorChart = null;
+  let _sectorFilter    = null;
+
+  function setSectorMode(mode) {
+    _sectorMode = mode;
+    _sectorFilter = null;
+    document.querySelectorAll('.sector-type-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('stab-' + mode).classList.add('active');
+    renderSector();
+  }
+
+  function renderSector() {
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+    const emptyEl   = document.getElementById('sector-empty');
+    const contentEl = document.getElementById('sector-content');
+
+    if (!snap || !snap.positions.length) {
+      emptyEl.style.display   = 'block';
+      contentEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display   = 'none';
+    contentEl.style.display = 'block';
+
+    const { sorted, total, totalEval, totalDiv } = buildSectorData(snap, master);
+    const colors = _sectorMode === 'sens'
+      ? sorted.map(s => SENS_COLORS[s.key] || '#8888aa')
+      : sorted.map((_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length]);
+
+    renderSectorWarning(sorted, total);
+    renderSectorDonut(sorted.map(s => s.label), sorted.map(s => _sectorMode === 'div' ? s.divAmount : s.evalAmount), colors, total);
+    renderSectorLegend(sorted, colors, total);
+    renderSectorTable(sorted, snap, master, total);
+
+    const centerLabel = document.getElementById('sector-center-label');
+    const centerValue = document.getElementById('sector-center-value');
+    const amtHeader   = document.getElementById('sector-legend-amt-header');
+    if (_sectorMode === 'div') {
+      if (centerLabel) centerLabel.textContent = '年間配当予想合計';
+      if (centerValue) centerValue.textContent = '¥' + Math.round(totalDiv).toLocaleString();
+      if (amtHeader)   amtHeader.textContent   = '配当予想（円）';
+    } else {
+      if (centerLabel) centerLabel.textContent = '時価評価額合計';
+      if (centerValue) centerValue.textContent = '¥' + Math.round(totalEval).toLocaleString();
+      if (amtHeader)   amtHeader.textContent   = '評価額（円）';
+    }
+    const tableTitle = document.getElementById('sector-table-title');
+    if (tableTitle) tableTitle.textContent =
+      _sectorMode === 'sens' ? '景気感応度別 銘柄明細' : 'セクター別 銘柄明細';
+  }
+
+  function buildSectorData(snap, master) {
+    const map = {};
+    let totalEval = 0, totalDiv = 0;
+    for (const pos of snap.positions) {
+      const m = master[pos.code] || {};
+      let key, label;
+      if (_sectorMode === 'sens') {
+        key   = m.sectorType || 'cyclical';
+        label = SENS_LABELS[key] || key;
+      } else {
+        key   = m.sector33 || '未分類';
+        label = key;
+      }
+      const evalAmt = pos.evalAmount || 0;
+      const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
+      const divAmt  = (m.dividendForecast || 0) * (pos.shares || 0) * taxCoef;
+      if (!map[key]) map[key] = { label, evalAmount: 0, divAmount: 0, key };
+      map[key].evalAmount += evalAmt;
+      map[key].divAmount  += divAmt;
+      totalEval += evalAmt;
+      totalDiv  += divAmt;
+    }
+    const sorted = Object.values(map).sort((a, b) =>
+      (_sectorMode === 'div' ? b.divAmount - a.divAmount : b.evalAmount - a.evalAmount)
+    );
+    const total = _sectorMode === 'div' ? totalDiv : totalEval;
+    return { sorted, total, totalEval, totalDiv };
+  }
+
+  function renderSectorDonut(labels, values, colors, total) {
+    const canvas = document.getElementById('sector-donut-chart');
+    if (!canvas) return;
+    if (_sectorChart) { _sectorChart.destroy(); _sectorChart = null; }
+    _sectorChart = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 1, borderColor: 'rgba(0,0,0,0.3)' }] },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                return ` ${ctx.label}: ${pct}% (¥${Math.round(ctx.parsed).toLocaleString()})`;
+              }
+            }
+          }
+        },
+        animation: { duration: 400 },
+      }
+    });
+  }
+
+  function renderSectorLegend(sorted, colors, total) {
+    const el = document.getElementById('sector-legend');
+    if (!el) return;
+    el.innerHTML = sorted.map((s, i) => {
+      const val  = _sectorMode === 'div' ? s.divAmount : s.evalAmount;
+      const pct  = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+      const warn = parseFloat(pct) >= 30 ? ' <span class="sector-warn-badge">集中</span>' : '';
+      return `<div class="sector-legend-item" onclick="filterSectorTable('${s.key}')">
+        <div class="sector-legend-dot" style="background:${colors[i]}"></div>
+        <div class="sector-legend-name">${escHtml(s.label)}${warn}</div>
+        <div class="sector-legend-pct">${pct}%</div>
+        <div class="sector-legend-amt">¥${Math.round(val).toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderSectorWarning(sorted, total) {
+    const warnBanner = document.getElementById('sector-warn-banner');
+    const warnDetail = document.getElementById('sector-warn-detail');
+    const warnLabel  = document.getElementById('sector-warn-label');
+    const warns = sorted.filter(s => {
+      const val = _sectorMode === 'div' ? s.divAmount : s.evalAmount;
+      return total > 0 && (val / total * 100) >= 30;
+    });
+    if (warns.length > 0) {
+      const detail = warns.map(s => {
+        const val = _sectorMode === 'div' ? s.divAmount : s.evalAmount;
+        return `${s.label}: ${(val / total * 100).toFixed(1)}%`;
+      }).join('　');
+      if (warnBanner) warnBanner.style.display = 'block';
+      if (warnDetail) warnDetail.textContent   = detail;
+      if (warnLabel) {
+        warnLabel.innerHTML     = `<span class="sector-warn-badge">⚠ 集中警告 ${warns.length}件</span>`;
+        warnLabel.style.display = 'inline';
+      }
+    } else {
+      if (warnBanner) warnBanner.style.display = 'none';
+      if (warnLabel)  warnLabel.style.display  = 'none';
+    }
+  }
+
+  function filterSectorTable(key) {
+    _sectorFilter = (_sectorFilter === key) ? null : key;
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+    if (!snap) return;
+    const { sorted, total } = buildSectorData(snap, master);
+    renderSectorTable(sorted, snap, master, total);
+  }
+
+  function renderSectorTable(sorted, snap, master, total) {
+    const tbody = document.getElementById('sector-detail-body');
+    if (!tbody) return;
+    let html = '';
+    for (const s of sorted) {
+      if (_sectorFilter && _sectorFilter !== s.key) continue;
+      const positions = snap.positions.filter(pos => {
+        const m = master[pos.code] || {};
+        const k = _sectorMode === 'sens' ? (m.sectorType || 'cyclical') : (m.sector33 || '未分類');
+        return k === s.key;
+      }).sort((a, b) => (b.evalAmount || 0) - (a.evalAmount || 0));
+
+      const sVal = _sectorMode === 'div' ? s.divAmount : s.evalAmount;
+      const pct  = total > 0 ? (sVal / total * 100).toFixed(1) : '0.0';
+      const warn = parseFloat(pct) >= 30 ? ' <span class="sector-warn-badge">集中</span>' : '';
+
+      html += `<tr style="background:var(--bg3);">
+        <td colspan="3" style="font-weight:700;color:var(--gold);font-family:'BIZ UDPGothic',sans-serif;">
+          ${escHtml(s.label)}${warn}
+        </td>
+        <td style="color:var(--gold);font-family:'Roboto Mono',monospace;">¥${Math.round(s.divAmount).toLocaleString()}</td>
+        <td style="color:var(--gold);font-family:'Roboto Mono',monospace;font-weight:700;">${pct}%</td>
+      </tr>`;
+
+      for (const pos of positions) {
+        const m       = master[pos.code] || {};
+        const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
+        const divAmt  = (m.dividendForecast || 0) * (pos.shares || 0) * taxCoef;
+        // モードに応じて構成比の分子を切り替える
+        const posVal  = _sectorMode === 'div' ? divAmt : (pos.evalAmount || 0);
+        const rowPct  = total > 0 ? (posVal / total * 100).toFixed(1) : '0.0';
+        // モードに応じて左の金額列の表示を切り替える
+        const evalCell = _sectorMode === 'div'
+          ? (divAmt > 0 ? '¥' + Math.round(divAmt).toLocaleString() : '<span class="muted">－</span>')
+          : '¥' + Math.round(pos.evalAmount || 0).toLocaleString();
+        html += `<tr>
+          <td style="color:var(--text-muted);font-size:0.8rem;">└</td>
+          <td style="text-align:left;">
+            <span style="font-family:'Roboto Mono',monospace;color:var(--text-muted);font-size:0.8rem;">${pos.code}</span>
+            <span style="margin-left:6px;">${escHtml(pos.name)}</span>
+          </td>
+          <td>${evalCell}</td>
+          <td>${divAmt > 0 ? '¥' + Math.round(divAmt).toLocaleString() : '<span class="muted">－</span>'}</td>
+          <td>${rowPct}%</td>
+        </tr>`;
+      }
+    }
+    if (!html) html = '<tr><td colspan="5" class="muted" style="text-align:center;padding:16px;">データがありません</td></tr>';
+    tbody.innerHTML = html;
+  }
+
+  function renderDashSectorMini() {
+    const snap    = getLatestSnapshot();
+    const master  = getStockMaster();
+    const section = document.getElementById('dash-sector-section');
+    if (!snap || !snap.positions.length) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = 'block';
+
+    const map = {};
+    let total = 0;
+    for (const pos of snap.positions) {
+      const m   = master[pos.code] || {};
+      const key = m.sector33 || '未分類';
+      if (!map[key]) map[key] = 0;
+      map[key] += pos.evalAmount || 0;
+      total    += pos.evalAmount || 0;
+    }
+    const TOP_N  = 6;
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    const top    = sorted.slice(0, TOP_N);
+    const others = sorted.slice(TOP_N).reduce((s, [, v]) => s + v, 0);
+    if (others > 0) top.push(['その他', others]);
+
+    const colors = top.map((_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length]);
+    const canvas = document.getElementById('dash-sector-mini-chart');
+    if (canvas) {
+      if (_dashSectorChart) { _dashSectorChart.destroy(); _dashSectorChart = null; }
+      _dashSectorChart = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: top.map(([k]) => k), datasets: [{ data: top.map(([, v]) => v), backgroundColor: colors, borderWidth: 1, borderColor: 'rgba(0,0,0,0.3)' }] },
+        options: {
+          cutout: '60%',
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          animation: { duration: 300 },
+        }
+      });
+    }
+    const legendEl = document.getElementById('dash-sector-mini-legend');
+    if (legendEl) {
+      legendEl.innerHTML = top.map(([label, val], i) => {
+        const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+        return `<div class="dsml-item">
+          <div class="dsml-dot" style="background:${colors[i]}"></div>
+          <div class="dsml-name">${escHtml(label)}</div>
+          <div class="dsml-pct">${pct}%</div>
+        </div>`;
+      }).join('');
+    }
   }
 
   // ============================================================
