@@ -2317,10 +2317,11 @@
         );
         const forecast = extractAnnualDividend(items);
         if (forecast > 0) {
-          const m = master[code];
-          if (!m.dividendManual) {
-            m.dividendForecast = forecast;
-            m.dividendSource   = 'api';
+          // 書き込み直前に最新のLocalStorageから再取得してdividendManualを確認
+          const latestMaster = JSON.parse(localStorage.getItem('hdp_stock_master') || '{}');
+          if (!latestMaster[code]?.dividendManual) {
+            master[code].dividendForecast = forecast;
+            master[code].dividendSource   = 'api';
             successCount++;
           }
         }
