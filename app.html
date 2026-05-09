@@ -2055,7 +2055,7 @@
         throw new Error(`HTTP ${res.status}: ${body.message || res.statusText}`);
       }
       const data = await res.json();
-      results = results.concat(data.daily_quotes ?? data.statements ?? []);
+      results = results.concat(data.data ?? data.daily_quotes ?? data.statements ?? []);
       paginationKey = data.pagination_key ?? null;
     } while (paginationKey);
     return results;
@@ -2113,8 +2113,9 @@
 
       const prices = {};
       for (const item of items) {
-        if (item.Code && item.Close != null) {
-          prices[String(item.Code).slice(0, 4)] = item.Close;
+        const price = item.AdjC ?? item.C ?? item.Close;
+        if (item.Code && price != null) {
+          prices[String(item.Code).slice(0, 4)] = price;
         }
       }
 
