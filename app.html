@@ -170,6 +170,12 @@
     #settings-table-wrap {
       overflow: visible;
     }
+    /* border-collapse: collapse は sticky と相性が悪いため separate に上書き */
+    #dash-table,
+    #settings-table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
     /* 保有株一覧・銘柄別設定テーブルのヘッダーをスクロール追従 */
     #dash-table thead th,
     #settings-table thead th {
