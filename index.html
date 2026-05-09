@@ -666,6 +666,64 @@
       text-align: right;
     }
 
+    /* ===== F-06 配当サマリー ===== */
+    .div-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 900px) { .div-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .div-kpi-grid { grid-template-columns: 1fr; } }
+    .div-month-chart-wrap {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 140px;
+      padding: 8px 0 0;
+    }
+    .div-month-bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .div-month-bar {
+      width: 100%;
+      border-radius: 3px 3px 0 0;
+      background: var(--gold-dim);
+      transition: height 0.4s;
+      min-height: 2px;
+    }
+    .div-month-bar.current-month { background: var(--gold); }
+    .div-month-bar.has-actual    { background: var(--green-light); }
+    .div-month-amt {
+      font-size: 0.6rem;
+      color: var(--gold);
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+    .div-month-actual {
+      font-size: 0.58rem;
+      color: var(--green-light);
+      white-space: nowrap;
+    }
+    .div-month-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .div-month-label.current-month { color: var(--gold); font-weight: 700; }
+    .div-no-paymonth-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 8px 0 4px;
+      display: none;
+    }
+
     /* ===== ダッシュボード セクターバー ===== */
     .dash-sector-bar-wrap {
       display: flex;
@@ -895,8 +953,97 @@
 
   <!-- ===== 画面3: 配当サマリー ===== -->
   <div id="screen-dividend" class="screen">
-    <div class="section-title">配当サマリー</div>
-    <div class="banner banner-info">Phase 2 で実装予定です。</div>
+
+    <!-- データなし -->
+    <div id="div-empty" style="display:none;" class="card" style="text-align:center;padding:32px;color:var(--text-muted);">
+      CSVをインポートすると配当サマリーが表示されます。
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:12px;">インポート画面へ</button>
+    </div>
+
+    <div id="div-content">
+      <!-- KPI 4枚 -->
+      <div class="div-kpi-grid">
+        <div class="card">
+          <div class="card-title">年間配当予想（税引前）</div>
+          <div class="card-value" id="div-kpi-gross">－</div>
+          <div class="card-sub">全保有銘柄合計</div>
+        </div>
+        <div class="card">
+          <div class="card-title">年間配当予想（税引後）</div>
+          <div class="card-value" id="div-kpi-net">－</div>
+          <div class="card-sub">手取り合計</div>
+        </div>
+        <div class="card">
+          <div class="card-title">月平均手取り配当</div>
+          <div class="card-value" id="div-kpi-monthly">－</div>
+          <div class="card-sub">年間手取り ÷ 12</div>
+        </div>
+        <div class="card">
+          <div class="card-title">配当実績累計（CSV）</div>
+          <div class="card-value" id="div-kpi-actual">－</div>
+          <div class="card-sub" id="div-kpi-actual-sub">配当金CSVより</div>
+        </div>
+      </div>
+
+      <!-- 月次バーチャート -->
+      <div class="section-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">📅 月次配当スケジュール</div>
+          <div style="display:flex;gap:12px;font-size:0.72rem;color:var(--text-muted);align-items:center;">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--gold-dim);border-radius:2px;margin-right:4px;"></span>予想</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--green-light);border-radius:2px;margin-right:4px;"></span>実績あり</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--gold);border-radius:2px;margin-right:4px;"></span>当月</span>
+          </div>
+        </div>
+        <div class="card" style="padding:16px 16px 10px;">
+          <div class="div-month-chart-wrap" id="div-month-chart"></div>
+          <div class="div-no-paymonth-note" id="div-no-paymonth-note">
+            ⚠️ 入金月が未設定の銘柄があります。配当金CSVをインポートすると自動設定されます。
+          </div>
+        </div>
+      </div>
+
+      <!-- 銘柄別明細 -->
+      <div class="section-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div class="section-title" style="margin-bottom:0;">銘柄別 配当明細</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="div-filter-month" onchange="renderDividendScreen()" style="font-size:0.8rem;">
+              <option value="">全月</option>
+              <option value="1">1月</option><option value="2">2月</option>
+              <option value="3">3月</option><option value="4">4月</option>
+              <option value="5">5月</option><option value="6">6月</option>
+              <option value="7">7月</option><option value="8">8月</option>
+              <option value="9">9月</option><option value="10">10月</option>
+              <option value="11">11月</option><option value="12">12月</option>
+            </select>
+            <select id="div-sort" onchange="renderDividendScreen()" style="font-size:0.8rem;">
+              <option value="amount">金額順</option>
+              <option value="month">入金月順</option>
+              <option value="yield">利回り順</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left;">コード / 銘柄</th>
+                <th>入金月</th>
+                <th>株数</th>
+                <th>配当予想/株</th>
+                <th>年間予想（税前）</th>
+                <th>年間予想（税後）</th>
+                <th>税引後利回り</th>
+                <th>実績累計（CSV）</th>
+              </tr>
+            </thead>
+            <tbody id="div-detail-body"></tbody>
+            <tfoot id="div-detail-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== 画面6: セクター分散 ===== -->
@@ -1350,6 +1497,7 @@
 
     if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
     if (id === 'holdings')  renderDashTable();
+    if (id === 'dividend')  renderDividendScreen();
     if (id === 'settings')  renderSettings();
     if (id === 'import')    renderImportHistory();
     if (id === 'sector')    renderSector();
@@ -2590,6 +2738,181 @@
   function clearErr01() {
     const el = document.getElementById('err01-banner');
     if (el) el.style.display = 'none';
+  }
+
+  // ============================================================
+  // F-06: 配当サマリー
+  // ============================================================
+
+  function renderDividendScreen() {
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+    const hist   = getDividendHist();
+
+    const emptyEl   = document.getElementById('div-empty');
+    const contentEl = document.getElementById('div-content');
+
+    if (!snap || !snap.positions.length) {
+      if (emptyEl)   emptyEl.style.display   = 'block';
+      if (contentEl) contentEl.style.display = 'none';
+      return;
+    }
+    if (emptyEl)   emptyEl.style.display   = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+
+    // ---- 集計 ----
+    let grossTotal = 0, netTotal = 0;
+    const monthlyForecast = Array(12).fill(0);
+    let noPayMonthCount   = 0;
+
+    for (const pos of snap.positions) {
+      const m = master[pos.code] || {};
+      if (!m.dividendForecast) continue;
+      const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
+      const gross   = m.dividendForecast * pos.shares;
+      const net     = gross * taxCoef;
+      grossTotal   += gross;
+      netTotal     += net;
+
+      const months = (m.payMonths || []).filter(mo => mo >= 1 && mo <= 12);
+      if (months.length > 0) {
+        const perMonth = net / months.length;
+        for (const mo of months) monthlyForecast[mo - 1] += perMonth;
+      } else {
+        noPayMonthCount++;
+      }
+    }
+
+    // 実績累計
+    const actualTotal  = hist.reduce((s, h) => s + (h.netAmt || 0), 0);
+    const actualMonths = new Set(hist.map(h => h.payDate?.slice(0, 7))).size;
+
+    // ---- KPI ----
+    const el = (id) => document.getElementById(id);
+    if (el('div-kpi-gross'))       el('div-kpi-gross').textContent       = fmtYen(grossTotal);
+    if (el('div-kpi-net'))         el('div-kpi-net').textContent         = fmtYen(netTotal);
+    if (el('div-kpi-monthly'))     el('div-kpi-monthly').textContent     = fmtYen(netTotal / 12);
+    if (el('div-kpi-actual'))      el('div-kpi-actual').textContent      = actualTotal > 0 ? fmtYen(actualTotal) : '－';
+    if (el('div-kpi-actual-sub'))  el('div-kpi-actual-sub').textContent  = actualTotal > 0
+      ? `${actualMonths}ヶ月分の実績`
+      : '配当金CSVをインポートすると表示';
+
+    // ---- 月次チャート ----
+    renderDivMonthChart(monthlyForecast, hist, noPayMonthCount);
+
+    // ---- 明細テーブル ----
+    renderDivDetailTable(snap, master, hist, grossTotal, netTotal);
+  }
+
+  function renderDivMonthChart(monthlyForecast, hist, noPayMonthCount) {
+    const chartEl = document.getElementById('div-month-chart');
+    const noteEl  = document.getElementById('div-no-paymonth-note');
+    if (!chartEl) return;
+
+    if (noteEl) noteEl.style.display = noPayMonthCount > 0 ? 'block' : 'none';
+
+    const now    = new Date();
+    const currMo = now.getMonth();
+    const maxVal = Math.max(...monthlyForecast, 1);
+
+    const actualByMonth = Array(12).fill(0);
+    for (const h of hist) {
+      if (!h.payDate) continue;
+      const mo = new Date(h.payDate).getMonth();
+      actualByMonth[mo] += h.netAmt || 0;
+    }
+
+    const LABELS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    chartEl.innerHTML = LABELS.map((label, i) => {
+      const forecast  = monthlyForecast[i];
+      const actual    = actualByMonth[i];
+      const heightPct = (forecast / maxVal * 100).toFixed(1);
+      const isCurr    = i === currMo;
+      const hasActual = actual > 0;
+      const barClass  = hasActual ? 'has-actual' : isCurr ? 'current-month' : '';
+      const amtStr    = forecast > 0 ? '¥' + Math.round(forecast / 1000) + 'K' : '';
+      const actStr    = hasActual ? '実¥' + Math.round(actual / 1000) + 'K' : '';
+      return `<div class="div-month-bar-col">
+        <div class="div-month-amt">${amtStr}</div>
+        <div class="div-month-actual">${actStr}</div>
+        <div class="div-month-bar ${barClass}" style="height:${heightPct}%;" title="${label} 予想:¥${Math.round(forecast).toLocaleString()} ${hasActual ? '実績:¥'+Math.round(actual).toLocaleString() : ''}"></div>
+        <div class="div-month-label ${isCurr ? 'current-month' : ''}">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderDivDetailTable(snap, master, hist, grossTotal, netTotal) {
+    const tbody = document.getElementById('div-detail-body');
+    const tfoot = document.getElementById('div-detail-foot');
+    if (!tbody) return;
+
+    const filterMonth = parseInt(document.getElementById('div-filter-month')?.value || '0') || 0;
+    const sortKey     = document.getElementById('div-sort')?.value || 'amount';
+
+    const actualByCode = {};
+    for (const h of hist) {
+      if (!actualByCode[h.code]) actualByCode[h.code] = 0;
+      actualByCode[h.code] += h.netAmt || 0;
+    }
+
+    const MONTH_LABELS = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+    let rows = snap.positions.map(pos => {
+      const m       = master[pos.code] || {};
+      const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
+      const gross   = (m.dividendForecast || 0) * pos.shares;
+      const net     = gross * taxCoef;
+      const yld     = pos.currentPrice > 0 && m.dividendForecast
+        ? m.dividendForecast / pos.currentPrice * 100 * taxCoef : null;
+      const months  = (m.payMonths || []).filter(mo => mo >= 1 && mo <= 12).sort((a, b) => a - b);
+      return { pos, m, gross, net, yld, months, actual: actualByCode[pos.code] || 0 };
+    }).filter(r => {
+      if (!r.m.dividendForecast) return false;
+      if (filterMonth && !r.months.includes(filterMonth)) return false;
+      return true;
+    });
+
+    rows.sort((a, b) => {
+      if (sortKey === 'month') return (a.months[0] || 99) - (b.months[0] || 99);
+      if (sortKey === 'yield') return (b.yld ?? -999) - (a.yld ?? -999);
+      return b.net - a.net;
+    });
+
+    let totGross = 0, totNet = 0, totActual = 0;
+    for (const r of rows) { totGross += r.gross; totNet += r.net; totActual += r.actual; }
+
+    tbody.innerHTML = rows.map(({ pos, m, gross, net, yld, months, actual }) => {
+      const monthsStr = months.length
+        ? months.map(mo => MONTH_LABELS[mo]).join('・')
+        : '<span class="muted" title="配当金CSVをインポートすると自動設定">未設定</span>';
+      const yldHtml = yld !== null
+        ? `<span class="${yld >= (m.alertThreshold || 0) ? 'pos' : ''}">${yld.toFixed(2)}%</span>`
+        : '<span class="muted">－</span>';
+      const actualHtml = actual > 0
+        ? `<span style="color:var(--green-light);">¥${Math.round(actual).toLocaleString()}</span>`
+        : '<span class="muted">－</span>';
+      return `<tr>
+        <td style="text-align:left;">
+          <span style="font-family:'Roboto Mono',monospace;color:var(--text-muted);font-size:0.8rem;">${pos.code}</span>
+          <span style="margin-left:6px;">${escHtml(pos.name)}</span>
+        </td>
+        <td>${monthsStr}</td>
+        <td>${fmtNum(pos.shares)}</td>
+        <td>${fmtYen(m.dividendForecast)}</td>
+        <td>${fmtYen(gross)}</td>
+        <td style="color:var(--gold);">${fmtYen(net)}</td>
+        <td>${yldHtml}</td>
+        <td>${actualHtml}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:16px;">該当銘柄なし</td></tr>';
+
+    tfoot.innerHTML = `<tr>
+      <td colspan="4" style="font-weight:700;color:var(--text-muted);">合計 ${rows.length} 銘柄</td>
+      <td style="font-weight:700;">${fmtYen(totGross)}</td>
+      <td style="font-weight:700;color:var(--gold);">${fmtYen(totNet)}</td>
+      <td></td>
+      <td style="color:var(--green-light);font-weight:700;">${totActual > 0 ? fmtYen(totActual) : '－'}</td>
+    </tr>`;
   }
 
   // ============================================================
