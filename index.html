@@ -3741,9 +3741,15 @@
     if (panel) panel.style.display = 'none';
   }
 
-  /** 待機ユーティリティ */
+  /** 待機ユーティリティ（バックグラウンドタブでも正確に動作） */
   function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => {
+      const end = Date.now() + ms;
+      (function check() {
+        if (Date.now() >= end) resolve();
+        else setTimeout(check, 100);
+      })();
+    });
   }
 
   // ============================================================
