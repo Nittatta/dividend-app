@@ -33,6 +33,7 @@
       --red:          #e05555;
       --yellow:       #f0c040;
       --nav-h:        56px;
+      --bottom-nav-h: 64px;
     }
 
     /* ===== ライトテーマ変数上書き ===== */
@@ -107,6 +108,127 @@
     }
     .nav-btn:hover { background: var(--bg3); color: var(--text); }
     .nav-btn.active { background: var(--bg3); color: var(--gold); font-weight: 700; }
+
+    /* ===== スマホ下部ナビ ===== */
+    #bottom-nav {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding-top: 48px;
+        padding-bottom: var(--bottom-nav-h);
+      }
+      #nav {
+        height: 48px;
+        padding: 0 12px;
+      }
+      #nav #nav-items {
+        display: none !important;
+      }
+      #nav .nav-brand {
+        font-size: 0.95rem;
+      }
+      #bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: var(--bottom-nav-h);
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .bnav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.62rem;
+        padding: 6px 4px;
+        cursor: pointer;
+        transition: color 0.15s;
+        font-family: inherit;
+      }
+      .bnav-item.active {
+        color: var(--gold);
+      }
+      .bnav-item svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      /* その他メニュー（スライドアップ） */
+      #bnav-more-panel {
+        display: none;
+        position: fixed;
+        bottom: var(--bottom-nav-h);
+        left: 0; right: 0;
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        padding: 16px;
+        z-index: 999;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+      }
+      #bnav-more-panel.open {
+        display: block;
+      }
+      #bnav-more-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 998;
+      }
+      #bnav-more-overlay.open {
+        display: block;
+      }
+      .bnav-more-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .bnav-more-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.82rem;
+        cursor: pointer;
+        font-family: inherit;
+        text-align: left;
+      }
+      .bnav-more-item svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--gold);
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      .bnav-more-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+    }
 
     /* ===== 画面コンテナ ===== */
     .screen { display: none; max-width: 1400px; margin: 0 auto; padding: 20px 16px; }
@@ -813,7 +935,7 @@
 </head>
 <body>
 
-  <!-- ===== ナビゲーション ===== -->
+  <!-- ===== ナビゲーション（PC上部） ===== -->
   <nav id="nav">
     <div class="nav-brand">高配当 PF</div>
     <div id="nav-items" style="display:flex;gap:2px;flex:1;overflow-x:auto;">
@@ -822,6 +944,57 @@
     <button id="btn-theme" onclick="toggleTheme()" title="テーマ切り替え" style="flex-shrink:0;">🌙</button>
     <span id="nav-api-status" style="flex-shrink:0;"></span>
   </nav>
+
+  <!-- ===== ナビゲーション（スマホ下部） ===== -->
+  <nav id="bottom-nav">
+    <!-- ホーム -->
+    <button class="bnav-item active" id="bnav-dashboard" onclick="showScreen('dashboard');bnavActivate('dashboard')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      ホーム
+    </button>
+    <!-- 保有株 -->
+    <button class="bnav-item" id="bnav-holdings" onclick="showScreen('holdings');bnavActivate('holdings')">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      保有株
+    </button>
+    <!-- 配当 -->
+    <button class="bnav-item" id="bnav-dividend" onclick="showScreen('dividend');bnavActivate('dividend')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      配当
+    </button>
+    <!-- グラフ -->
+    <button class="bnav-item" id="bnav-charts" onclick="showScreen('charts');bnavActivate('charts')">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      グラフ
+    </button>
+    <!-- その他 -->
+    <button class="bnav-item" id="bnav-more" onclick="toggleBnavMore()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      その他
+    </button>
+  </nav>
+
+  <!-- その他メニュー オーバーレイ -->
+  <div id="bnav-more-overlay" onclick="closeBnavMore()"></div>
+
+  <!-- その他メニュー パネル -->
+  <div id="bnav-more-panel">
+    <div class="bnav-more-title">その他のメニュー</div>
+    <div class="bnav-more-grid">
+      <button class="bnav-more-item" onclick="showScreen('sector');bnavActivate('sector');closeBnavMore()">
+        <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        セクター分散
+      </button>
+      <button class="bnav-more-item" onclick="showScreen('evaluation');bnavActivate('evaluation');closeBnavMore()">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        銘柄評価
+      </button>
+      <button class="bnav-more-item" onclick="showScreen('settings');bnavActivate('settings');closeBnavMore()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        設定
+      </button>
+    </div>
+  </div>
 
   <!-- ===== ERR-03: ストレージ警告バナー ===== -->
   <div id="storage-warn-banner" class="banner banner-warn" style="display:none;margin:8px 16px 0;border-radius:6px;">
@@ -1776,6 +1949,46 @@
   }
 
   // ============================================================
+  // スマホ下部ナビゲーション
+  // ============================================================
+
+  const BNAV_MAIN_IDS = ['dashboard', 'holdings', 'dividend', 'charts'];
+
+  function bnavActivate(id) {
+    // メインボタンのアクティブ状態を更新
+    BNAV_MAIN_IDS.forEach(btnId => {
+      const btn = document.getElementById('bnav-' + btnId);
+      if (btn) btn.classList.toggle('active', btnId === id);
+    });
+    // その他メニュー内のタブがアクティブの場合「その他」ボタンをアクティブに
+    const moreBtn = document.getElementById('bnav-more');
+    if (moreBtn) {
+      moreBtn.classList.toggle('active', !BNAV_MAIN_IDS.includes(id));
+    }
+  }
+
+  function toggleBnavMore() {
+    const panel   = document.getElementById('bnav-more-panel');
+    const overlay = document.getElementById('bnav-more-overlay');
+    if (!panel || !overlay) return;
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+      panel.classList.remove('open');
+      overlay.classList.remove('open');
+    } else {
+      panel.classList.add('open');
+      overlay.classList.add('open');
+    }
+  }
+
+  function closeBnavMore() {
+    const panel   = document.getElementById('bnav-more-panel');
+    const overlay = document.getElementById('bnav-more-overlay');
+    if (panel)   panel.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+  }
+
+  // ============================================================
   // ナビゲーション 並び替え・動的生成
   // ============================================================
 
@@ -1885,6 +2098,8 @@
     const navBtn = document.getElementById('nav-' + id);
     if (screen) screen.classList.add('active');
     if (navBtn) navBtn.classList.add('active');
+    // 下部ナビも同期
+    bnavActivate(id);
 
     if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
     if (id === 'holdings')  renderDashTable();
