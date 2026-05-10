@@ -867,6 +867,20 @@
       </div>
     </div>
 
+    <!-- 月次配当スケジュール（ダッシュボード用） -->
+    <div class="section-wrap" id="dash-div-section" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="section-title" style="margin-bottom:0;">💰 月次配当スケジュール</div>
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('dividend')" style="font-size:0.75rem;">詳細 →</button>
+      </div>
+      <div class="card" style="padding:14px 16px;">
+        <div id="dash-div-month-chart" style="display:flex;align-items:flex-end;gap:3px;height:100px;"></div>
+        <div id="dash-div-no-paymonth" style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;display:none;">
+          ※ 入金月未設定の銘柄があります（配当金CSVをインポートすると自動設定されます）
+        </div>
+      </div>
+    </div>
+
     <!-- セクター構成サマリー（積み上げ横棒グラフ） -->
     <div class="section-wrap" id="dash-sector-section" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -876,8 +890,8 @@
       <div class="card" style="padding:14px 16px;">
         <!-- 積み上げ横棒 -->
         <div id="dash-sector-stacked-bar" style="display:flex;width:100%;height:32px;border-radius:6px;overflow:hidden;margin-bottom:12px;"></div>
-        <!-- 凡例（2列グリッド） -->
-        <div id="dash-sector-legend" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;"></div>
+        <!-- 凡例（3列グリッド・全件表示） -->
+        <div id="dash-sector-legend" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px 12px;"></div>
       </div>
     </div>
 
@@ -2368,6 +2382,7 @@
 
     renderAlertBanner(positions, master);
     renderErr02Notice(positions, master);
+    renderDashDivMini();
     renderDashSectorMini();
   }
 
@@ -3794,7 +3809,91 @@
     tbody.innerHTML = html;
   }
 
-  /** ダッシュボード用 積み上げ横棒グラフ */
+  /** ダッシュボード用 月次配当スケジュール */
+  function renderDashDivMini() {
+    const snap    = getLatestSnapshot();
+    const master  = getStockMaster();
+    const hist    = getDividendHist();
+    const section = document.getElementById('dash-div-section');
+    const chartEl = document.getElementById('dash-div-month-chart');
+    const noteEl  = document.getElementById('dash-div-no-paymonth');
+
+    if (!snap || !snap.positions.length) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = 'block';
+    if (!chartEl) return;
+
+    // 月次予想集計
+    const monthlyForecast = Array(12).fill(0);
+    let noPayMonthCount   = 0;
+    for (const pos of snap.positions) {
+      const m = master[pos.code] || {};
+      if (!m.dividendForecast) continue;
+      const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
+      const net     = m.dividendForecast * pos.shares * taxCoef;
+      const months  = (m.payMonths || []).filter(mo => mo >= 1 && mo <= 12);
+      if (months.length > 0) {
+        const perMonth = net / months.length;
+        for (const mo of months) monthlyForecast[mo - 1] += perMonth;
+      } else {
+        noPayMonthCount++;
+      }
+    }
+
+    // 実績集計（配当金CSV）
+    const actualByMonth = Array(12).fill(0);
+    for (const h of hist) {
+      if (!h.payDate) continue;
+      const mo = new Date(h.payDate).getMonth();
+      actualByMonth[mo] += h.netAmt || 0;
+    }
+
+    if (noteEl) noteEl.style.display = noPayMonthCount > 0 ? 'block' : 'none';
+
+    const now    = new Date();
+    const currMo = now.getMonth();
+    const maxVal = Math.max(...monthlyForecast, 1);
+
+    const LABELS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+    chartEl.innerHTML = LABELS.map((label, i) => {
+      const forecast  = monthlyForecast[i];
+      const actual    = actualByMonth[i];
+      const heightPct = (forecast / maxVal * 100).toFixed(1);
+      const isCurr    = i === currMo;
+      const hasActual = actual > 0;
+
+      const barBg = hasActual   ? 'var(--green-light)'
+                  : isCurr     ? 'var(--gold)'
+                  : forecast > 0 ? '#8a6e3e'
+                  : 'var(--bg3)';
+
+      const amtStr = forecast > 0
+        ? (forecast >= 10000
+            ? '¥' + Math.round(forecast / 1000) + 'K'
+            : '¥' + (Math.round(forecast / 100) / 10).toFixed(1) + 'K')
+        : '';
+
+      const titleStr = `${label}月 予想:¥${Math.round(forecast).toLocaleString()}${hasActual ? ' 実績:¥' + Math.round(actual).toLocaleString() : ''}`;
+
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;">
+        <div style="font-size:0.58rem;color:${forecast > 0 ? 'var(--gold)' : 'transparent'};
+          white-space:nowrap;line-height:1.2;">${amtStr}</div>
+        <div title="${titleStr}"
+          style="width:100%;border-radius:2px 2px 0 0;background:${barBg};
+            height:${forecast > 0 ? heightPct : '2'}%;
+            min-height:${forecast > 0 ? '3' : '2'}px;
+            ${isCurr ? 'outline:1.5px solid var(--text);outline-offset:1px;' : ''}
+            transition:height 0.4s ease;"></div>
+        <div style="font-size:0.62rem;margin-top:2px;
+          color:${isCurr ? 'var(--gold)' : 'var(--text-muted)'};
+          font-weight:${isCurr ? '700' : '400'};">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  /** ダッシュボード用 積み上げ横棒グラフ（全件表示・3列凡例） */
   function renderDashSectorMini() {
     const snap    = getLatestSnapshot();
     const master  = getStockMaster();
@@ -3815,21 +3914,18 @@
       total    += pos.evalAmount || 0;
     }
 
-    const TOP_N  = 7;
-    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
-    const top    = sorted.slice(0, TOP_N);
-    const others = sorted.slice(TOP_N).reduce((s, [, v]) => s + v, 0);
-    if (others > 0) top.push(['その他', others]);
+    // 全件表示（TOP_N制限なし）・構成比降順
+    const all = Object.entries(map).sort((a, b) => b[1] - a[1]);
 
     const barEl    = document.getElementById('dash-sector-stacked-bar');
     const legendEl = document.getElementById('dash-sector-legend');
     if (!barEl || !legendEl) return;
 
-    // 積み上げ横棒
-    barEl.innerHTML = top.map(([label, val], i) => {
-      const pct   = total > 0 ? (val / total * 100) : 0;
-      const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
-      const warn  = pct >= 30;
+    // 積み上げ横棒（全セクター）
+    barEl.innerHTML = all.map(([label, val], i) => {
+      const pct       = total > 0 ? (val / total * 100) : 0;
+      const color     = SECTOR_COLORS[i % SECTOR_COLORS.length];
+      const warn      = pct >= 30;
       const showLabel = pct >= 5;
       const textColor = ['#c8a96e','#f0c040'].includes(color) ? '#000' : '#fff';
       return `<div title="${escHtml(label)}: ${pct.toFixed(1)}%"
@@ -3845,18 +3941,18 @@
       </div>`;
     }).join('');
 
-    // 凡例（2列グリッド）
-    legendEl.innerHTML = top.map(([label, val], i) => {
+    // 凡例（3列グリッド・全件）
+    legendEl.innerHTML = all.map(([label, val], i) => {
       const pct   = total > 0 ? (val / total * 100) : 0;
       const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
       const warn  = pct >= 30;
-      return `<div style="display:flex;align-items:center;gap:6px;font-size:0.73rem;color:var(--text);">
-        <div style="width:9px;height:9px;border-radius:2px;background:${color};flex-shrink:0;
+      return `<div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text);">
+        <div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:${color};
           ${warn ? 'outline:1px solid var(--red);' : ''}"></div>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
           title="${escHtml(label)}">${escHtml(label)}${warn ? ' ⚠' : ''}</span>
-        <span style="font-family:'Roboto Mono',monospace;color:var(--text-muted);font-size:0.7rem;
-          ${warn ? 'color:var(--red);font-weight:700;' : ''}">${pct.toFixed(1)}%</span>
+        <span style="font-family:'Roboto Mono',monospace;font-size:0.68rem;
+          ${warn ? 'color:var(--red);font-weight:700;' : 'color:var(--text-muted);'}">${pct.toFixed(1)}%</span>
       </div>`;
     }).join('');
   }
