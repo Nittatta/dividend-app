@@ -4435,8 +4435,8 @@
       const equities = masterJson.equities || masterJson.data || [];
       const eq = equities[0];
       if (eq) {
-        const name   = eq.Name || eq.CompanyName || eq.CompanyNameRome || '';
-        const sector = eq.Sector33CodeName || eq.Sector33Name || '';
+        const name   = eq.CoName || eq.Name || eq.CompanyName || '';
+        const sector = eq.S33Nm  || eq.Sector33CodeName || eq.Sector33Name || '';
 
         // hdp_eval_master を更新
         const evalM = getEvalMaster();
