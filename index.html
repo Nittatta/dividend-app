@@ -1113,10 +1113,14 @@
         📊 セクター分散
         <span id="sector-warn-label" style="display:none;"></span>
       </div>
-      <div class="sector-type-tabs">
-        <button class="sector-type-tab active" id="stab-eval"  onclick="setSectorMode('eval')">時価評価額</button>
-        <button class="sector-type-tab"        id="stab-div"   onclick="setSectorMode('div')">配当金</button>
-        <button class="sector-type-tab"        id="stab-sens"  onclick="setSectorMode('sens')">景気感応度</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="sector-type-tabs">
+          <button class="sector-type-tab active" id="stab-eval"  onclick="setSectorMode('eval')">時価評価額</button>
+          <button class="sector-type-tab"        id="stab-div"   onclick="setSectorMode('div')">配当金</button>
+          <button class="sector-type-tab"        id="stab-sens"  onclick="setSectorMode('sens')">景気感応度</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-sector-fetch" onclick="fetchAllSectors()">🏷️ セクター一括取得</button>
+        <span id="sector-fetch-status" style="font-size:0.75rem;color:var(--text-muted);"></span>
       </div>
     </div>
 
@@ -3394,6 +3398,86 @@
       <td></td>
       <td style="color:var(--green-light);font-weight:700;">${totActual > 0 ? fmtYen(totActual) : '－'}</td>
     </tr>`;
+  }
+
+  // ============================================================
+  // F-07補助: セクター一括取得
+  // ============================================================
+
+  async function fetchAllSectors() {
+    const s = getSettings();
+    if (!s.jquantsApiKey) {
+      showToast('APIキーが未設定です。設定画面で登録してください。', 'err');
+      return;
+    }
+
+    const snap = getLatestSnapshot();
+    if (!snap || !snap.positions.length) {
+      showToast('CSVをインポートしてください', 'err');
+      return;
+    }
+
+    const codes  = [...new Set(snap.positions.map(p => p.code))];
+    const btn    = document.getElementById('btn-sector-fetch');
+    const status = document.getElementById('sector-fetch-status');
+    const headers = { 'x-api-key': s.jquantsApiKey };
+
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = '取得中…';
+
+    let successCount = 0, failCount = 0;
+
+    // equities/master は全銘柄を一度に取れるため1リクエストで済む
+    try {
+      const res  = await fetchWithRetry(
+        'https://jquants-proxy.drumsbaka.workers.dev/v2/equities/master',
+        headers, 2, [5000, 15000]
+      );
+      const json = await res.json();
+      const equities = json.equities || json.data || [];
+
+      // code → equityのマップ作成（5桁コードと4桁コード両対応）
+      const eqMap = {};
+      for (const eq of equities) {
+        const c5 = String(eq.Code || '');
+        const c4 = c5.endsWith('0') ? c5.slice(0, -1) : c5;
+        eqMap[c5] = eq;
+        eqMap[c4] = eq;
+      }
+
+      const stockM = getStockMaster();
+      for (const code of codes) {
+        const eq = eqMap[code] || eqMap[code + '0'];
+        if (!eq) { failCount++; continue; }
+
+        const name   = eq.CoName || eq.Name || '';
+        const sector = eq.S33Nm  || eq.Sector33CodeName || '';
+
+        if (stockM[code]) {
+          if (name   && !stockM[code].name)     stockM[code].name     = name;
+          if (sector)                            stockM[code].sector33 = sector; // 常に上書き
+          successCount++;
+        }
+      }
+      saveStockMaster(stockM);
+
+    } catch (e) {
+      showToast('セクター取得エラー: ' + e.message.slice(0, 50), 'err');
+      if (btn)    btn.disabled = false;
+      if (status) status.textContent = 'エラー';
+      return;
+    }
+
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent =
+      `完了（${successCount}件取得${failCount > 0 ? `・${failCount}件失敗` : ''}）`;
+
+    // セクター分散を再描画
+    renderSector();
+    // 設定テーブルも再描画
+    renderSettingsTable();
+
+    showToast(`セクターを取得しました（${successCount} 銘柄）`, 'ok');
   }
 
   // ============================================================
