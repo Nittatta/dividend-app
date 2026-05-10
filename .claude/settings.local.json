@@ -5,7 +5,8 @@
       "PowerShell(git *)",
       "PowerShell(Copy-Item *)",
       "PowerShell(head *)",
-      "PowerShell(New-Item *)"
+      "PowerShell(New-Item *)",
+      "PowerShell(& \"C:\\\\Users\\\\drums\\\\dividend-app\\\\create-icons.ps1\")"
     ]
   }
 }

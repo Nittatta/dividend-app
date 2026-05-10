@@ -1520,17 +1520,34 @@
     <!-- データ管理 -->
     <div class="section-wrap">
       <div class="section-title">データ管理</div>
-      <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-        <button class="btn btn-ghost" onclick="exportBackup()">JSONバックアップ出力</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('import-backup-file').click()">JSONバックアップ読み込み</button>
-        <input type="file" id="import-backup-file" accept=".json" style="display:none" onchange="importBackup(this)">
-        <button class="btn btn-danger" onclick="clearAllData()">全データ消去</button>
-        <div style="margin-left:auto;font-size:0.8rem;color:var(--text-muted);">
-          ストレージ: <span id="storage-usage-text">計算中…</span>
-          <div class="progress-bar-wrap" style="width:160px;display:inline-block;vertical-align:middle;margin-left:8px;">
+
+      <!-- 📲 デバイス間データ移行 -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--gold);margin-bottom:10px;">📲 デバイス間データ移行</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <button class="btn btn-primary" onclick="exportBackup()">⬇ バックアップを書き出す</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('import-backup-file').click()">⬆ バックアップを読み込む</button>
+          <input type="file" id="import-backup-file" accept=".json" style="display:none" onchange="importBackup(this)">
+        </div>
+        <div id="backup-status" style="margin-top:8px;font-size:0.8rem;color:var(--text-muted);"></div>
+      </div>
+
+      <!-- 💾 ストレージ使用量 -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--gold);margin-bottom:8px;">💾 ストレージ使用量</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:0.85rem;color:var(--text-muted);">使用量: <span id="storage-usage-text" style="color:var(--text);font-weight:600;">計算中…</span></span>
+          <div class="progress-bar-wrap" style="flex:1;min-width:120px;max-width:300px;">
             <div class="progress-bar" id="storage-progress" style="width:0%"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ⚠️ 危険な操作 -->
+      <div class="card" style="border-color:#5a2020;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--red);margin-bottom:10px;">⚠️ 危険な操作</div>
+        <button class="btn btn-danger" onclick="clearAllData()">全データ消去</button>
+        <div style="margin-top:6px;font-size:0.75rem;color:var(--text-muted);">この操作は取り消せません。すべての保有データ・設定・履歴が削除されます。</div>
       </div>
     </div>
 
@@ -1569,6 +1586,7 @@
     PRICE_CACHE:   'hdp_price_cache',
     LAST_FETCH:    'hdp_last_fetch',
     EVAL_MASTER:   'hdp_eval_master',
+    NAV_ORDER:     'hdp_nav_order',
   };
 
   /** 口座ごとの税係数 */
@@ -2842,7 +2860,7 @@
   // ============================================================
 
   function exportBackup() {
-    const data = {};
+    const data = { _version: 2, _exportedAt: new Date().toISOString() };
     Object.values(STORAGE_KEYS).forEach(k => { data[k] = getStorage(k); });
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -2852,6 +2870,8 @@
     a.download = `hdp_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    const statusEl = document.getElementById('backup-status');
+    if (statusEl) statusEl.textContent = `書き出し完了: ${new Date().toLocaleString('ja-JP')}`;
   }
 
   function importBackup(input) {
@@ -2861,13 +2881,20 @@
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
+        const exportedAt = data._exportedAt ? new Date(data._exportedAt).toLocaleString('ja-JP') : '不明';
+        const version = data._version ?? 1;
+        const validKeys = new Set(Object.values(STORAGE_KEYS));
+        let count = 0;
         Object.entries(data).forEach(([k, v]) => {
-          if (v !== null) setStorage(k, v);
+          if (validKeys.has(k) && v !== null) { setStorage(k, v); count++; }
         });
-        showToast('バックアップを読み込みました', 'ok');
+        showToast(`バックアップを読み込みました（${count}件）`, 'ok');
+        buildNav();
         renderDashboard();
         renderSettings();
         renderImportHistory();
+        const statusEl = document.getElementById('backup-status');
+        if (statusEl) statusEl.textContent = `読み込み完了: バックアップ日時 ${exportedAt}（v${version}）`;
       } catch (err) {
         showToast('バックアップ読み込みエラー: ' + err.message, 'err');
       }
