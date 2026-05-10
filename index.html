@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>高配当株ポートフォリオ管理</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/dividend-app/manifest.json">
+  <meta name="theme-color" content="#c8a96e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="高配当PF">
+  <link rel="apple-touch-icon" href="/dividend-app/icons/icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
@@ -4859,6 +4868,13 @@
 
     // STEP 5: 配当予想取得（週1回・バックグラウンド）
     scheduleDividendFetch().catch(e => console.error('配当予想スケジュールエラー:', e));
+
+    // PWA: Service Worker 登録
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/dividend-app/sw.js')
+        .then(() => console.log('Service Worker 登録完了'))
+        .catch(e => console.warn('Service Worker 登録失敗:', e));
+    }
   });
   </script>
 </body>

@@ -1,0 +1,25 @@
+{
+  "name": "高配当株ポートフォリオ",
+  "short_name": "高配当PF",
+  "description": "高配当株ポートフォリオ管理アプリ",
+  "start_url": "/dividend-app/",
+  "scope": "/dividend-app/",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#c8a96e",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

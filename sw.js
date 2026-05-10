@@ -1,0 +1,51 @@
+const CACHE_NAME = 'hdp-cache-v1';
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        '/dividend-app/',
+        '/dividend-app/index.html',
+      ]).catch(() => {});
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  if (!event.request.url.startsWith('http')) return;
+  if (event.request.url.includes('workers.dev')) return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, cloned);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cached) => {
+          return cached || new Response('オフラインです。最後に開いた状態を表示しています。', {
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          });
+        });
+      })
+  );
+});
