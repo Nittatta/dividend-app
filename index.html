@@ -4424,6 +4424,39 @@
       note.push('配当性向:データなし');
     }
 
+    // 銘柄名・セクターを equities/master から取得
+    // → hdp_eval_master と hdp_stock_master の両方を更新
+    try {
+      const masterRes = await fetchWithRetry(
+        `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/master?code=${code}`,
+        headers, 1, [5000]
+      );
+      const masterJson = await masterRes.json();
+      const equities = masterJson.equities || masterJson.data || [];
+      const eq = equities[0];
+      if (eq) {
+        const name   = eq.Name || eq.CompanyName || eq.CompanyNameRome || '';
+        const sector = eq.Sector33CodeName || eq.Sector33Name || '';
+
+        // hdp_eval_master を更新
+        const evalM = getEvalMaster();
+        if (!evalM[code]) evalM[code] = defaultEvalEntry(code);
+        if (name)   evalM[code].name   = name;
+        if (sector) evalM[code].sector = sector;
+        saveEvalMaster(evalM);
+
+        // hdp_stock_master も更新（保有銘柄の場合のみ反映）
+        const stockM = getStockMaster();
+        if (stockM[code]) {
+          if (name   && !stockM[code].name)     stockM[code].name     = name;
+          if (sector && !stockM[code].sector33) stockM[code].sector33 = sector;
+          saveStockMaster(stockM);
+        }
+      }
+    } catch (e) {
+      console.warn(`equities/master 取得失敗 [${code}]:`, e.message);
+    }
+
     return {
       scoreRevenue, scoreEPS, scoreOpMargin, scoreEquityRatio,
       scoreCash, scoreDividend, scorePayoutRatio,
