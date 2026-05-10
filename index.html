@@ -4354,29 +4354,29 @@
 
     const note = [];
 
-    // 期ごとにDiscDate最新レコードを集約（最大5期分・降順）
+    // 期ごとにCurFYEnd年でグループ化（最大5期分・降順）
+    // 実際のAPIフィールド名: Sales/OP/EPS/EqAR/PayoutRatioAnn/CashEq/DivAnn 等
     const byYear = buildEvalYearlyData(summaryItems, [
-      'NetSales', 'OperatingProfit', 'BasicEarningsPerShare',
-      'EquityRatio', 'PayoutRatio', 'DivAnn', 'FDivAnn', 'NxFDivAnn',
-      'CashAndDeposits',
+      'Sales', 'OP', 'EPS', 'EqAR', 'PayoutRatioAnn',
+      'DivAnn', 'FDivAnn', 'NxFDivAnn', 'CashEq',
     ]);
 
     const latest = byYear[0] || {};
 
-    // 1. 売上高トレンド
-    const revenues = byYear.map(y => y.NetSales).filter(v => v != null && v > 0);
+    // 1. 売上高トレンド（Sales）
+    const revenues = byYear.map(y => y.Sales).filter(v => v != null && v > 0);
     const scoreRevenue = calcEvalTrendScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
-    // 2. EPS成長
-    const eps = byYear.map(y => y.BasicEarningsPerShare).filter(v => v != null);
+    // 2. EPS成長（EPS）
+    const eps = byYear.map(y => y.EPS).filter(v => v != null);
     const scoreEPS = calcEvalTrendScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
-    // 3. 営業利益率（直近期）
+    // 3. 営業利益率（OP / Sales・直近期）
     let scoreOpMargin = 0;
-    if (latest.OperatingProfit != null && latest.NetSales > 0) {
-      const margin = latest.OperatingProfit / latest.NetSales * 100;
+    if (latest.OP != null && latest.Sales > 0) {
+      const margin = latest.OP / latest.Sales * 100;
       if      (margin >= 10) scoreOpMargin = 3;
       else if (margin >= 7)  scoreOpMargin = 2;
       else                   scoreOpMargin = 1;
@@ -4384,11 +4384,11 @@
       note.push('営業利益率:データなし(IFRS等)');
     }
 
-    // 4. 自己資本比率（直近期）
+    // 4. 自己資本比率（EqAR・直近期）
+    // EqARは0〜1の小数で格納されている（例: 0.498 = 49.8%）
     let scoreEquityRatio = 0;
-    if (latest.EquityRatio != null) {
-      const eq    = latest.EquityRatio;
-      const eqPct = eq > 1 ? eq : eq * 100;
+    if (latest.EqAR != null) {
+      const eqPct = latest.EqAR > 1 ? latest.EqAR : latest.EqAR * 100;
       if      (eqPct >= 50) scoreEquityRatio = 3;
       else if (eqPct >= 40) scoreEquityRatio = 2;
       else                  scoreEquityRatio = 1;
@@ -4396,22 +4396,26 @@
       note.push('自己資本比率:データなし(IFRS等)');
     }
 
-    // 5. 現金・預金トレンド（CashAndDeposits）
-    const cash = byYear.map(y => y.CashAndDeposits).filter(v => v != null && v > 0);
+    // 5. 現金・同等物トレンド（CashEq）
+    const cash = byYear.map(y => y.CashEq).filter(v => v != null && v > 0);
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
-    // 6. 配当金/株トレンド
+    // 6. 配当金/株トレンド（DivAnn → FDivAnn → NxFDivAnn）
     const divs = byYear
-      .map(y => y.DivAnn ?? y.FDivAnn ?? y.NxFDivAnn)
+      .map(y => {
+        const v = y.DivAnn ?? y.FDivAnn ?? y.NxFDivAnn;
+        return (v != null && v !== '') ? parseFloat(v) : null;
+      })
       .filter(v => v != null && v > 0);
     const scoreDividend = calcEvalDividendScore(divs);
     if (divs.length < 2) note.push('配当実績データ不足');
 
-    // 7. 配当性向（直近期）
+    // 7. 配当性向（PayoutRatioAnn・直近期）
+    // PayoutRatioAnnは0〜1の小数（例: 0.287 = 28.7%）
     let scorePayoutRatio = 0;
-    if (latest.PayoutRatio != null) {
-      const pr    = latest.PayoutRatio;
+    if (latest.PayoutRatioAnn != null && latest.PayoutRatioAnn !== '') {
+      const pr    = parseFloat(latest.PayoutRatioAnn);
       const prPct = pr > 1 ? pr : pr * 100;
       if      (prPct >= 30 && prPct <= 50) scorePayoutRatio = 3;
       else if (prPct <= 60)                scorePayoutRatio = 2;
@@ -4431,25 +4435,44 @@
   function buildEvalYearlyData(items, fields) {
     if (!items || !items.length) return [];
     const yearMap = {};
+
     for (const item of items) {
-      const year = item['FiscalYear'];
+      // FiscalYearが存在しないため CurFYEn（決算期末日）の年を使用
+      // 例: "2021-03-31" → "2021"
+      const fyEnd = item['CurFYEn'] || item['CurPerEn'] || '';
+      const year  = fyEnd.slice(0, 4);
       if (!year) continue;
-      const docType = (item.TypeOfDocument || '').toLowerCase();
-      if (docType.includes('revision') || docType.includes('earncorrect')) continue;
+
+      // 四半期・修正開示は除外し、通期（FY）のみ対象
+      const docType   = (item.DocType || item.TypeOfDocument || '').toLowerCase();
+      const perType   = (item.CurPerType || '').toUpperCase();
+
+      // 四半期（1Q/2Q/3Q）は除外
+      if (perType && perType !== 'FY' && perType !== 'H1') continue;
+      // 修正・訂正は除外
+      if (docType.includes('revision') || docType.includes('earncorrect') ||
+          docType.includes('correct')) continue;
+
+      // 同一年で最新DiscDateのレコードを採用
       if (!yearMap[year] || (item.DiscDate || '') > (yearMap[year].DiscDate || '')) {
         yearMap[year] = item;
       }
     }
+
     return Object.keys(yearMap)
-      .sort((a, b) => b.localeCompare(a))
+      .sort((a, b) => b.localeCompare(a))  // 新しい年が先頭
       .slice(0, 5)
       .map(year => {
         const item = yearMap[year];
         const row  = { year };
         for (const f of fields) {
           const raw = item[f];
-          row[f] = (raw !== '' && raw != null) ? parseFloat(raw) : null;
-          if (isNaN(row[f])) row[f] = null;
+          if (raw === '' || raw == null) {
+            row[f] = null;
+          } else {
+            const n = parseFloat(raw);
+            row[f] = isNaN(n) ? null : n;
+          }
         }
         return row;
       });
