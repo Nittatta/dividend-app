@@ -4121,39 +4121,54 @@
   async function calcAutoScoreForCode(code, apiKey) {
     const headers = { 'x-api-key': apiKey };
 
+    // /v2/fins/summary から財務サマリー取得
     const summaryItems = await fetchWithPaging(
       `https://jquants-proxy.drumsbaka.workers.dev/v2/fins/summary?code=${code}`,
       headers
     );
 
-    let detailItems = [];
+    // /v2/fins/statements から詳細財務（CF・現金）取得
+    // ※ fins/details は存在しないため fins/statements を使用
+    let stmtItems = [];
     try {
-      detailItems = await fetchWithPaging(
-        `https://jquants-proxy.drumsbaka.workers.dev/v2/fins/details?code=${code}`,
+      stmtItems = await fetchWithPaging(
+        `https://jquants-proxy.drumsbaka.workers.dev/v2/fins/statements?code=${code}`,
         headers
       );
     } catch (e) {
-      console.warn(`fins/details 取得失敗 [${code}]:`, e.message);
+      console.warn(`fins/statements 取得失敗 [${code}]:`, e.message);
     }
 
     const note = [];
 
+    // --- summaryItems を期ごとに集約 ---
     const summaryByYear = buildEvalYearlyData(summaryItems, [
       'NetSales', 'OperatingProfit', 'BasicEarningsPerShare',
       'EquityRatio', 'PayoutRatio', 'DivAnn', 'FDivAnn', 'NxFDivAnn',
     ]);
-    const detailByYear = buildEvalYearlyData(detailItems, [
-      'CashFlowFromOperatingActivities', 'CashAndCashEquivalents',
+
+    // --- stmtItems を期ごとに集約（CF・現金はここから取得）---
+    // fins/statements のフィールド名候補（複数名称に対応）
+    const stmtByYear = buildEvalYearlyData(stmtItems, [
+      // 営業CF（J-Quants fins/statements での正式フィールド名）
+      'NetCashProvidedByUsedInOperatingActivities',
+      'CashFlowsFromUsedInOperatingActivities',
+      // 現金および現金同等物
+      'CashAndCashEquivalentsAtEndOfPeriod',
+      'CashAndCashEquivalents',
     ]);
 
+    // --- 1. 売上高トレンド ---
     const revenues = summaryByYear.map(y => y.NetSales).filter(v => v != null && v > 0);
     const scoreRevenue = calcEvalTrendScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
+    // --- 2. EPS成長 ---
     const eps = summaryByYear.map(y => y.BasicEarningsPerShare).filter(v => v != null);
     const scoreEPS = calcEvalTrendScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
+    // --- 3. 営業利益率（直近期） ---
     const latestSummary = summaryByYear[0] || {};
     let scoreOpMargin = 0;
     if (latestSummary.OperatingProfit != null && latestSummary.NetSales > 0) {
@@ -4165,6 +4180,7 @@
       note.push('営業利益率:データなし(IFRS等)');
     }
 
+    // --- 4. 自己資本比率（直近期） ---
     let scoreEquityRatio = 0;
     if (latestSummary.EquityRatio != null) {
       const eq    = latestSummary.EquityRatio;
@@ -4176,20 +4192,30 @@
       note.push('自己資本比率:データなし(IFRS等)');
     }
 
-    const cfs = detailByYear.map(y => y.CashFlowFromOperatingActivities).filter(v => v != null);
+    // --- 5. 営業CF（fins/statements の複数フィールド名に対応） ---
+    const cfs = stmtByYear.map(y =>
+      y.NetCashProvidedByUsedInOperatingActivities ??
+      y.CashFlowsFromUsedInOperatingActivities
+    ).filter(v => v != null);
     const scoreCF = calcEvalTrendScore(cfs);
     if (cfs.length < 2) note.push('営業CFデータ不足');
 
-    const cash = detailByYear.map(y => y.CashAndCashEquivalents).filter(v => v != null);
+    // --- 6. 現金・同等物 ---
+    const cash = stmtByYear.map(y =>
+      y.CashAndCashEquivalentsAtEndOfPeriod ??
+      y.CashAndCashEquivalents
+    ).filter(v => v != null);
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
+    // --- 7. 配当金/株トレンド ---
     const divs = summaryByYear
       .map(y => y.DivAnn ?? y.FDivAnn ?? y.NxFDivAnn)
       .filter(v => v != null && v > 0);
     const scoreDividend = calcEvalDividendScore(divs);
     if (divs.length < 2) note.push('配当実績データ不足');
 
+    // --- 8. 配当性向（直近期） ---
     let scorePayoutRatio = 0;
     if (latestSummary.PayoutRatio != null) {
       const pr    = latestSummary.PayoutRatio;
