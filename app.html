@@ -2789,25 +2789,62 @@
   // STEP 4: J-Quants API V2 株価自動取得
   // ============================================================
 
-  /** ページング対応 API フェッチ（daily_quotes / statements 両対応） */
-  async function fetchWithPaging(url, headers) {
-    let results = [];
-    let paginationKey = null;
-    do {
-      const sep = url.includes('?') ? '&' : '?';
-      const fullUrl = paginationKey
-        ? `${url}${sep}pagination_key=${encodeURIComponent(paginationKey)}`
-        : url;
-      const res = await fetch(fullUrl, { headers });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(`HTTP ${res.status}: ${body.message || res.statusText}`);
+  /**
+   * ページング対応フェッチ（429リトライ付き）
+   * 429が返ってきた場合は最大3回・指数バックオフでリトライする
+   */
+  async function fetchWithPaging(url, headers = {}, retryCount = 0) {
+    const MAX_RETRY = 3;
+    const RETRY_DELAYS = [10000, 30000, 60000]; // 10秒・30秒・60秒
+
+    let allItems = [];
+    let nextUrl  = url;
+
+    while (nextUrl) {
+      const res = await fetchWithRetry(nextUrl, headers, MAX_RETRY, RETRY_DELAYS);
+      const json = await res.json();
+
+      // レスポンス構造に応じてデータ配列を取得
+      const dataKey = Object.keys(json).find(k => Array.isArray(json[k]));
+      if (dataKey) allItems = allItems.concat(json[dataKey]);
+
+      // ページネーションキーがあれば続きを取得
+      const pk = json.pagination_key;
+      if (pk) {
+        const sep = nextUrl.includes('?') ? '&' : '?';
+        nextUrl = `${nextUrl.split('?')[0]}${sep}pagination_key=${encodeURIComponent(pk)}`;
+      } else {
+        nextUrl = null;
       }
-      const data = await res.json();
-      results = results.concat(data.data ?? data.daily_quotes ?? data.statements ?? []);
-      paginationKey = data.pagination_key ?? null;
-    } while (paginationKey);
-    return results;
+    }
+
+    return allItems;
+  }
+
+  /**
+   * 429対応リトライ付きfetch
+   * 429が返ってきた場合は待機してリトライ、それ以外のエラーは即時throw
+   */
+  async function fetchWithRetry(url, headers, maxRetry, retryDelays) {
+    for (let attempt = 0; attempt <= maxRetry; attempt++) {
+      const res = await fetch(url, { headers });
+
+      if (res.status === 429) {
+        if (attempt >= maxRetry) {
+          throw new Error(`レートリミット超過（429）: ${url}`);
+        }
+        const waitMs = retryDelays[attempt] ?? 60000;
+        console.warn(`429 Too Many Requests. ${waitMs / 1000}秒後にリトライ (${attempt + 1}/${maxRetry})`);
+        await sleep(waitMs);
+        continue;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${url}`);
+      }
+
+      return res;
+    }
   }
 
   /** 直近の営業日を返す（JST基準・土日を除いて最大10日さかのぼる） */
@@ -4073,45 +4110,73 @@
     if (btn)   btn.disabled = true;
     if (panel) panel.style.display = 'block';
 
-    let successCount = 0, failCount = 0;
+    let successCount = 0;
+    let failCount    = 0;
+    let processed    = 0;
 
-    for (let i = 0; i < codes.length; i++) {
+    // 3銘柄ずつバッチ処理
+    const BATCH_SIZE = 3;
+    const BATCH_WAIT = 3000; // バッチ間の待機（ms）
+
+    const batches = [];
+    for (let i = 0; i < codes.length; i += BATCH_SIZE) {
+      batches.push(codes.slice(i, i + BATCH_SIZE));
+    }
+
+    for (let bi = 0; bi < batches.length; bi++) {
       if (_autoCalcAbortFlag) {
-        showToast(`自動計算をキャンセルしました（${i}/${codes.length}）`, 'info');
+        showToast(`自動計算をキャンセルしました（${processed}/${codes.length}）`, 'info');
         break;
       }
-      const code = codes[i];
-      const pct  = Math.round((i + 1) / codes.length * 100);
-      if (textEl) textEl.textContent = `${i + 1} / ${codes.length} 銘柄処理中… (${code})`;
-      if (barEl)  barEl.style.width  = pct + '%';
 
-      try {
-        const ev = await calcAutoScoreForCode(code, s.jquantsApiKey);
-        const master = getStockMaster();
-        if (!master[code]) master[code] = createStockMasterEntry(code, code);
-        const existing = master[code].evaluation || defaultEvaluation();
-        master[code].evaluation = Object.assign(existing, ev);
-        saveStockMaster(master);
-        successCount++;
-      } catch (e) {
-        failCount++;
-        console.warn(`評価計算失敗 [${code}]:`, e.message);
-        const master = getStockMaster();
-        if (master[code]) {
-          if (!master[code].evaluation) master[code].evaluation = defaultEvaluation();
-          master[code].evaluation.autoCalcNote = '自動取得失敗: ' + e.message.slice(0, 50);
-          saveStockMaster(master);
+      const batch = batches[bi];
+
+      // バッチ内を並列実行
+      const results = await Promise.allSettled(
+        batch.map(code => calcAutoScoreForCode(code, s.jquantsApiKey))
+      );
+
+      // 結果をマスタに保存
+      const master = getStockMaster();
+      results.forEach((result, idx) => {
+        const code = batch[idx];
+        processed++;
+
+        if (result.status === 'fulfilled') {
+          if (!master[code]) master[code] = createStockMasterEntry(code, code);
+          const existing = master[code].evaluation || defaultEvaluation();
+          master[code].evaluation = Object.assign(existing, result.value);
+          successCount++;
+        } else {
+          failCount++;
+          console.warn(`評価計算失敗 [${code}]:`, result.reason?.message);
+          if (master[code]) {
+            if (!master[code].evaluation) master[code].evaluation = defaultEvaluation();
+            master[code].evaluation.autoCalcNote =
+              '自動取得失敗: ' + (result.reason?.message || 'unknown').slice(0, 50);
+          }
         }
-      }
+      });
+      saveStockMaster(master);
 
-      if (i < codes.length - 1 && !_autoCalcAbortFlag) await sleep(3000);
+      // プログレス更新
+      const pct = Math.round(processed / codes.length * 100);
+      if (textEl) textEl.textContent =
+        `${processed} / ${codes.length} 銘柄完了… (バッチ ${bi + 1}/${batches.length})`;
+      if (barEl) barEl.style.width = pct + '%';
+
+      // 最終バッチ以外は待機
+      if (bi < batches.length - 1 && !_autoCalcAbortFlag) {
+        await sleep(BATCH_WAIT);
+      }
     }
 
     if (panel)    panel.style.display = 'none';
     if (btn)      btn.disabled = false;
     if (statusEl) {
       const now = new Date().toLocaleString('ja-JP');
-      statusEl.textContent = `最終実行: ${now}（成功 ${successCount}件${failCount > 0 ? `・失敗 ${failCount}件` : ''}）`;
+      statusEl.textContent =
+        `最終実行: ${now}（成功 ${successCount}件${failCount > 0 ? `・失敗 ${failCount}件` : ''}）`;
     }
 
     renderEvaluation();

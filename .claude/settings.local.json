@@ -3,7 +3,8 @@
     "allow": [
       "PowerShell(Start-Process \"C:\\\\Users\\\\drums\\\\dividend-app\\\\app.html\")",
       "PowerShell(git *)",
-      "PowerShell(Copy-Item *)"
+      "PowerShell(Copy-Item *)",
+      "PowerShell(head *)"
     ]
   }
 }
