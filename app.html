@@ -112,6 +112,7 @@
     /* ===== スマホ下部ナビ ===== */
     #bottom-nav { display: none; }
     #bnav-sort-badge { display: none; }
+    #bnav-scroll { display: none; }
 
     @media (max-width: 600px) {
       /* セクター構成凡例をスマホでは2列に */
@@ -173,6 +174,8 @@
         -ms-overflow-style: none;
         padding: 0 4px;
         align-items: stretch;
+        touch-action: pan-x;
+        -webkit-overflow-scrolling: touch;
       }
       #bnav-scroll::-webkit-scrollbar { display: none; }
 
@@ -196,7 +199,7 @@
         transition: color 0.15s, border-color 0.15s;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: none;
+        touch-action: manipulation;
         white-space: nowrap;
       }
       .bnav-item.active {
