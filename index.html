@@ -5197,36 +5197,55 @@
     
     
     const byYear = buildEvalYearlyData(summaryItems, [
-      'Sales', 'OP', 'EPS', 'FEPS', 'NxFEPS', 'EqAR', 'PayoutRatioAnn',
+      'Sales', 'FSales', 'NxFSales',
+      'OP',    'FOP',    'NxFOP',
+      'EPS',   'FEPS',   'NxFEPS',
+      'EqAR',  'PayoutRatioAnn', 'FPayoutRatioAnn',
       'DivAnn', 'FDivAnn', 'NxFDivAnn', 'CashEq',
     ]);
 
-    const latest = byYear[0] || {};
+    
+    const extByYear = byYear.map(y => ({
+      ...y,
+      Sales:          y.Sales          ?? y.FSales,
+      OP:             y.OP             ?? y.FOP,
+      EPS:            y.EPS            ?? y.FEPS,
+      PayoutRatioAnn: y.PayoutRatioAnn ?? y.FPayoutRatioAnn,
+    }));
+    
+    const _newestYear = byYear[0]?.year;
+    if (_newestYear) {
+      const _nxYear = String(parseInt(_newestYear) + 1);
+      if (!byYear.some(y => y.year === _nxYear)) {
+        const nxEntry = {
+          year:           _nxYear,
+          Sales:          byYear[0]?.NxFSales  ?? null,
+          OP:             byYear[0]?.NxFOP     ?? null,
+          EPS:            byYear[0]?.NxFEPS    ?? null,
+          EqAR:           null,
+          PayoutRatioAnn: null,
+          CashEq:         null,
+          FDivAnn:        byYear[0]?.NxFDivAnn ?? null,
+        };
+        if ([nxEntry.Sales, nxEntry.OP, nxEntry.EPS].some(v => v != null)) {
+          extByYear.unshift(nxEntry);
+        }
+      }
+    }
 
     
-    const revenues = byYear.map(y => y.Sales).filter(v => v != null && v > 0);
+    const revenues = extByYear.slice(0, 5).map(y => y.Sales).filter(v => v != null && v > 0);
     const scoreRevenue = calcRevenueGrowthScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
     
-    
-    const epsRaw = byYear.map(y => ({ year: y.year, val: y.EPS ?? y.FEPS }));
-    
-    const newestYear = byYear[0]?.year;
-    const nxFEPS     = byYear[0]?.NxFEPS;
-    if (newestYear && nxFEPS != null) {
-      const nxYear = String(parseInt(newestYear) + 1);
-      if (!byYear.some(y => y.year === nxYear)) {
-        epsRaw.unshift({ year: nxYear, val: nxFEPS });
-      }
-    }
-    const eps = epsRaw.slice(0, 5).map(d => d.val).filter(v => v != null);
+    const eps = extByYear.slice(0, 5).map(y => y.EPS).filter(v => v != null);
     const scoreEPS = calcEPSGrowthScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
     
     let scoreOpMargin = 0;
-    const margins = byYear
+    const margins = extByYear.slice(0, 5)
       .filter(y => y.OP != null && y.Sales != null && y.Sales > 0)
       .map(y => y.OP / y.Sales * 100);
     if (margins.length > 0) {
@@ -5245,8 +5264,9 @@
     const sectorName      = stockMForSector[code]?.sector33 || evalMForSector[code]?.sector || '';
     const isFinancial     = ['銀行業', '証券業', '保険業'].some(s => sectorName.includes(s));
     let scoreEquityRatio  = 0;
-    if (latest.EqAR != null) {
-      const eqPct = latest.EqAR > 1 ? latest.EqAR : latest.EqAR * 100;
+    const latestEqAREntry = extByYear.find(y => y.EqAR != null);
+    if (latestEqAREntry) {
+      const eqPct = latestEqAREntry.EqAR > 1 ? latestEqAREntry.EqAR : latestEqAREntry.EqAR * 100;
       if (isFinancial) {
         if      (eqPct >= 10) scoreEquityRatio = 3;
         else if (eqPct >= 8)  scoreEquityRatio = 2;
@@ -5263,7 +5283,7 @@
     }
 
     
-    const cash = byYear.map(y => y.CashEq).filter(v => v != null && v > 0);
+    const cash = extByYear.slice(0, 5).map(y => y.CashEq).filter(v => v != null && v > 0);
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
@@ -5284,7 +5304,6 @@
 
     let scoreDividend;
     if (csvDivValues.length >= 2) {
-      
       scoreDividend = calcEvalDividendScore(csvDivValues);
     } else {
       
@@ -5303,8 +5322,9 @@
     
     
     let scorePayoutRatio = 0;
-    if (latest.PayoutRatioAnn != null && latest.PayoutRatioAnn !== '') {
-      const pr    = parseFloat(latest.PayoutRatioAnn);
+    const latestPayoutEntry = extByYear.find(y => y.PayoutRatioAnn != null && y.PayoutRatioAnn !== '');
+    if (latestPayoutEntry) {
+      const pr    = parseFloat(latestPayoutEntry.PayoutRatioAnn);
       const prPct = pr > 1 ? pr : pr * 100;
       if      (prPct >= 30 && prPct <= 50) scorePayoutRatio = 3;
       else if (prPct <= 60)                scorePayoutRatio = 2;

@@ -5197,36 +5197,55 @@
     // 期ごとにCurFYEnd年でグループ化（最大5期分・降順）
     // 実際のAPIフィールド名: Sales/OP/EPS/EqAR/PayoutRatioAnn/CashEq/DivAnn 等
     const byYear = buildEvalYearlyData(summaryItems, [
-      'Sales', 'OP', 'EPS', 'FEPS', 'NxFEPS', 'EqAR', 'PayoutRatioAnn',
+      'Sales', 'FSales', 'NxFSales',
+      'OP',    'FOP',    'NxFOP',
+      'EPS',   'FEPS',   'NxFEPS',
+      'EqAR',  'PayoutRatioAnn', 'FPayoutRatioAnn',
       'DivAnn', 'FDivAnn', 'NxFDivAnn', 'CashEq',
     ]);
 
-    const latest = byYear[0] || {};
+    // 全評価項目共通：実績 → 当期予想（F*）でフォールバックした拡張データ
+    const extByYear = byYear.map(y => ({
+      ...y,
+      Sales:          y.Sales          ?? y.FSales,
+      OP:             y.OP             ?? y.FOP,
+      EPS:            y.EPS            ?? y.FEPS,
+      PayoutRatioAnn: y.PayoutRatioAnn ?? y.FPayoutRatioAnn,
+    }));
+    // 翌期予想（NxF）の合成エントリを先頭に追加（対象：Sales/OP/EPS）
+    const _newestYear = byYear[0]?.year;
+    if (_newestYear) {
+      const _nxYear = String(parseInt(_newestYear) + 1);
+      if (!byYear.some(y => y.year === _nxYear)) {
+        const nxEntry = {
+          year:           _nxYear,
+          Sales:          byYear[0]?.NxFSales  ?? null,
+          OP:             byYear[0]?.NxFOP     ?? null,
+          EPS:            byYear[0]?.NxFEPS    ?? null,
+          EqAR:           null,
+          PayoutRatioAnn: null,
+          CashEq:         null,
+          FDivAnn:        byYear[0]?.NxFDivAnn ?? null,
+        };
+        if ([nxEntry.Sales, nxEntry.OP, nxEntry.EPS].some(v => v != null)) {
+          extByYear.unshift(nxEntry);
+        }
+      }
+    }
 
-    // 1. 売上高トレンド（Sales・前年比成長率）
-    const revenues = byYear.map(y => y.Sales).filter(v => v != null && v > 0);
+    // 1. 売上高トレンド（前年比成長率・実績→予想でフォールバック）
+    const revenues = extByYear.slice(0, 5).map(y => y.Sales).filter(v => v != null && v > 0);
     const scoreRevenue = calcRevenueGrowthScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
-    // 2. EPS成長（EPS・CAGR + 連続プラス判定）
-    // 実績EPS → 当期予想FEPS の順でフォールバック
-    const epsRaw = byYear.map(y => ({ year: y.year, val: y.EPS ?? y.FEPS }));
-    // byYearに存在しない翌期をNxFEPSから先頭に追加
-    const newestYear = byYear[0]?.year;
-    const nxFEPS     = byYear[0]?.NxFEPS;
-    if (newestYear && nxFEPS != null) {
-      const nxYear = String(parseInt(newestYear) + 1);
-      if (!byYear.some(y => y.year === nxYear)) {
-        epsRaw.unshift({ year: nxYear, val: nxFEPS });
-      }
-    }
-    const eps = epsRaw.slice(0, 5).map(d => d.val).filter(v => v != null);
+    // 2. EPS成長（実績→予想でフォールバック）
+    const eps = extByYear.slice(0, 5).map(y => y.EPS).filter(v => v != null);
     const scoreEPS = calcEPSGrowthScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
-    // 3. 営業利益率（OP / Sales・5期平均）
+    // 3. 営業利益率（OP / Sales・5期平均・実績→予想でフォールバック）
     let scoreOpMargin = 0;
-    const margins = byYear
+    const margins = extByYear.slice(0, 5)
       .filter(y => y.OP != null && y.Sales != null && y.Sales > 0)
       .map(y => y.OP / y.Sales * 100);
     if (margins.length > 0) {
@@ -5238,15 +5257,16 @@
       note.push('営業利益率:データなし(IFRS等)');
     }
 
-    // 4. 自己資本比率（EqAR・直近期）
+    // 4. 自己資本比率（予想なし・最新実績）
     // 銀行業・証券業・保険業は閾値を変える
     const stockMForSector = getStockMaster();
     const evalMForSector  = getEvalMaster();
     const sectorName      = stockMForSector[code]?.sector33 || evalMForSector[code]?.sector || '';
     const isFinancial     = ['銀行業', '証券業', '保険業'].some(s => sectorName.includes(s));
     let scoreEquityRatio  = 0;
-    if (latest.EqAR != null) {
-      const eqPct = latest.EqAR > 1 ? latest.EqAR : latest.EqAR * 100;
+    const latestEqAREntry = extByYear.find(y => y.EqAR != null);
+    if (latestEqAREntry) {
+      const eqPct = latestEqAREntry.EqAR > 1 ? latestEqAREntry.EqAR : latestEqAREntry.EqAR * 100;
       if (isFinancial) {
         if      (eqPct >= 10) scoreEquityRatio = 3;
         else if (eqPct >= 8)  scoreEquityRatio = 2;
@@ -5262,8 +5282,8 @@
       note.push('自己資本比率:データなし(IFRS等)');
     }
 
-    // 5. 現金・同等物トレンド（CashEq）
-    const cash = byYear.map(y => y.CashEq).filter(v => v != null && v > 0);
+    // 5. 現金・同等物トレンド（予想なし・実績のみ）
+    const cash = extByYear.slice(0, 5).map(y => y.CashEq).filter(v => v != null && v > 0);
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
@@ -5284,7 +5304,6 @@
 
     let scoreDividend;
     if (csvDivValues.length >= 2) {
-      // CSV実績が2期分以上あればそれを優先使用（分割調整済みのため無配チェック省略）
       scoreDividend = calcEvalDividendScore(csvDivValues);
     } else {
       // フォールバック：FDivAnn → NxFDivAnn（DivAnnは分割未調整のため除外）
@@ -5300,11 +5319,12 @@
       if (divs.length < 2) note.push('配当実績データ不足');
     }
 
-    // 7. 配当性向（PayoutRatioAnn・直近期）
+    // 7. 配当性向（実績→当期予想でフォールバック・最新値）
     // PayoutRatioAnnは0〜1の小数（例: 0.287 = 28.7%）
     let scorePayoutRatio = 0;
-    if (latest.PayoutRatioAnn != null && latest.PayoutRatioAnn !== '') {
-      const pr    = parseFloat(latest.PayoutRatioAnn);
+    const latestPayoutEntry = extByYear.find(y => y.PayoutRatioAnn != null && y.PayoutRatioAnn !== '');
+    if (latestPayoutEntry) {
+      const pr    = parseFloat(latestPayoutEntry.PayoutRatioAnn);
       const prPct = pr > 1 ? pr : pr * 100;
       if      (prPct >= 30 && prPct <= 50) scorePayoutRatio = 3;
       else if (prPct <= 60)                scorePayoutRatio = 2;
