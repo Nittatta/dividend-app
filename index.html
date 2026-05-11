@@ -5197,7 +5197,7 @@
     
     
     const byYear = buildEvalYearlyData(summaryItems, [
-      'Sales', 'OP', 'EPS', 'EqAR', 'PayoutRatioAnn',
+      'Sales', 'OP', 'EPS', 'FEPS', 'NxFEPS', 'EqAR', 'PayoutRatioAnn',
       'DivAnn', 'FDivAnn', 'NxFDivAnn', 'CashEq',
     ]);
 
@@ -5209,7 +5209,18 @@
     if (revenues.length < 2) note.push('売上高データ不足');
 
     
-    const eps = byYear.map(y => y.EPS).filter(v => v != null);
+    
+    const epsRaw = byYear.map(y => ({ year: y.year, val: y.EPS ?? y.FEPS }));
+    
+    const newestYear = byYear[0]?.year;
+    const nxFEPS     = byYear[0]?.NxFEPS;
+    if (newestYear && nxFEPS != null) {
+      const nxYear = String(parseInt(newestYear) + 1);
+      if (!byYear.some(y => y.year === nxYear)) {
+        epsRaw.unshift({ year: nxYear, val: nxFEPS });
+      }
+    }
+    const eps = epsRaw.slice(0, 5).map(d => d.val).filter(v => v != null);
     const scoreEPS = calcEPSGrowthScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
