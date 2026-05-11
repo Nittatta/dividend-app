@@ -384,9 +384,11 @@
       background: var(--bg3);
     }
     @media (max-width: 600px) {
-      #dash-table thead th {
-        position: sticky;
-        top: 48px;
+      /* スマホではスティッキーヘッダーを完全無効化 */
+      #dash-table thead th,
+      #settings-table thead th {
+        position: relative !important;
+        top: auto !important;
       }
     }
     td {
