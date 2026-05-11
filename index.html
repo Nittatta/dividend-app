@@ -1856,9 +1856,9 @@
   <script>
   'use strict';
 
-  // ============================================================
-  // STEP 1: データ構造定義・LocalStorage ユーティリティ
-  // ============================================================
+  
+  
+  
 
   /** LocalStorage キー定数 */
   const STORAGE_KEYS = {
@@ -2001,9 +2001,9 @@
     };
   }
 
-  // ============================================================
-  // ERR-03: ストレージ容量超過ハンドラ
-  // ============================================================
+  
+  
+  
 
   async function checkStorageUsage() {
     if (!navigator.storage || !navigator.storage.estimate) return;
@@ -2013,7 +2013,7 @@
       const usedMB  = (est.usage / 1024 / 1024).toFixed(1);
       const totalMB = (est.quota  / 1024 / 1024).toFixed(0);
 
-      // 設定画面のプログレスバー更新
+      
       const textEl = document.getElementById('storage-usage-text');
       if (textEl) textEl.textContent = `${usedMB} MB / ${totalMB} MB (${pct.toFixed(1)}%)`;
       const bar = document.getElementById('storage-progress');
@@ -2022,7 +2022,7 @@
         bar.className = 'progress-bar' + (pct > 80 ? ' danger' : pct > 60 ? ' warn' : '');
       }
 
-      // ERR-03: 80% 超過 → バナー表示 + 自動削除（何度でも表示）
+      
       const banner = document.getElementById('storage-warn-banner');
       if (!banner) return;
       if (pct > 80) {
@@ -2058,13 +2058,13 @@
     }
   }
 
-  // ============================================================
-  // スマホ下部ナビゲーション（横スクロール＋長押し並び替え）
-  // ============================================================
+  
+  
+  
 
   const BNAV_STORAGE_KEY = 'hdp_bnav_order';
 
-  // タブ定義（id・短縮ラベル・SVGパス）
+  
   const BNAV_TABS = [
     { id: 'dashboard',  label: 'ホーム',
       svg: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
@@ -2095,7 +2095,7 @@
       if (saved) {
         const ids   = JSON.parse(saved);
         const order = [];
-        // 保存済み順に並べ、未登録タブは末尾に追加
+        
         for (const id of ids) {
           const tab = BNAV_TABS.find(t => t.id === id);
           if (tab) order.push(tab);
@@ -2132,16 +2132,16 @@
       </button>
     `).join('');
 
-    // イベント設定
+    
     scroll.querySelectorAll('.bnav-item').forEach((btn, idx) => {
-      // タッチ開始：長押しタイマー開始
+      
       btn.addEventListener('touchstart', (e) => {
         _longPressTimer = setTimeout(() => {
           enterBnavSortMode();
         }, 500);
       }, { passive: true });
 
-      // タッチ終了：タイマーキャンセル → 通常タップ処理
+      
       btn.addEventListener('touchend', (e) => {
         if (_longPressTimer) {
           clearTimeout(_longPressTimer);
@@ -2154,7 +2154,7 @@
         }
       });
 
-      // タッチ移動：長押し中に動いたらキャンセル（並び替えモード中はドラッグ処理）
+      
       btn.addEventListener('touchmove', (e) => {
         if (_longPressTimer) {
           clearTimeout(_longPressTimer);
@@ -2195,7 +2195,7 @@
     buildBnav();
   }
 
-  // タッチムーブ中のドラッグ処理
+  
   let _bnavDragOverIdx = null;
 
   function handleBnavTouchMove(e, srcIdx) {
@@ -2210,19 +2210,19 @@
 
     _bnavDragOverIdx = targetIdx;
 
-    // 配列を並び替え
+    
     const order = getBnavOrder();
     const [moved] = order.splice(srcIdx, 1);
     order.splice(targetIdx, 0, moved);
     _bnavOrder = order;
 
-    // DOM再構築
+    
     buildBnav();
   }
 
-  // ============================================================
-  // ナビゲーション 並び替え・動的生成
-  // ============================================================
+  
+  
+  
 
   const NAV_DEFAULT_ORDER = [
     { id: 'dashboard', label: 'ダッシュボード' },
@@ -2239,7 +2239,7 @@
       const saved = localStorage.getItem('hdp_nav_order');
       if (saved) {
         const order = JSON.parse(saved);
-        // 保存済みに存在しないタブを末尾に追加（新機能追加時の対応）
+        
         const savedIds = order.map(n => n.id);
         for (const def of NAV_DEFAULT_ORDER) {
           if (!savedIds.includes(def.id)) order.push(def);
@@ -2277,7 +2277,7 @@
       >${escHtml(item.label)}</button>
     `).join('');
 
-    // 現在アクティブな画面のボタンをアクティブに
+    
     const activeScreen = document.querySelector('.screen.active');
     if (activeScreen) {
       const activeId = activeScreen.id.replace('screen-', '');
@@ -2305,7 +2305,7 @@
     order.splice(targetIdx, 0, moved);
     saveNavOrder(order);
     buildNav();
-    // アクティブ画面を維持
+    
     const activeScreen = document.querySelector('.screen.active');
     if (activeScreen) {
       const activeId = activeScreen.id.replace('screen-', '');
@@ -2319,9 +2319,9 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.style.opacity = '');
   }
 
-  // ============================================================
-  // STEP 2: ナビゲーション・画面切替
-  // ============================================================
+  
+  
+  
 
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -2330,7 +2330,7 @@
     const navBtn = document.getElementById('nav-' + id);
     if (screen) screen.classList.add('active');
     if (navBtn) navBtn.classList.add('active');
-    // 下部ナビも同期
+    
     bnavActivate(id);
 
     if (id === 'dashboard') { renderDashboard(); checkStorageUsage(); }
@@ -2342,9 +2342,9 @@
     if (id === 'evaluation') renderEvaluation();
   }
 
-  // ============================================================
-  // トースト通知
-  // ============================================================
+  
+  
+  
 
   function showToast(msg, type = 'info', duration = 3500) {
     const container = document.getElementById('toast-container');
@@ -2355,9 +2355,9 @@
     setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, duration);
   }
 
-  // ============================================================
-  // STEP 3: CSVインポート
-  // ============================================================
+  
+  
+  
 
   const importFiles = { holdings: null, dividend: null };
 
@@ -2416,16 +2416,16 @@
 
   /** 保有株CSV（CP932/Shift-JIS）パース */
   async function parseHoldingsCsv(file) {
-    // CP932で読み込み（楽天証券の保有株CSVはShift-JIS）
+    
     const buf  = await file.arrayBuffer();
     const text = new TextDecoder('shift-jis').decode(buf);
 
-    // \r\n / \r 両対応・空行除去
+    
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
     if (!lines.length) throw new Error('ファイルが空です');
 
-    // 「種別」セルが存在する行をヘッダー行として動的検索
-    // （先頭28行前後に資産合計などの情報行があるため行内容で判断）
+    
+    
     const headerIdx = lines.findIndex(l => {
       const cells = parseCsvLine(l);
       return cells.some(c => c.trim() === '種別');
@@ -2434,27 +2434,27 @@
 
     const headers = parseCsvLine(lines[headerIdx]).map(h => h.trim());
 
-    // 「銘柄コード・ティッカー」列と「銘柄」列を区別して取得
-    // 「[単位]」列が混在しているため includes で部分一致、衝突する列は明示的に区別する
+    
+    
     const colOf = (kw) => headers.findIndex(h => h.includes(kw));
 
     const COL = {
       type:      headers.findIndex(h => h === '種別'),
-      // 「銘柄コード」は「銘柄コード・ティッカー」を含む列にマッチ
+      
       code:      colOf('銘柄コード'),
-      // 「銘柄」列は「銘柄コード」を含まない列（名称のみ）
+      
       name:      headers.findIndex(h => h.includes('銘柄') && !h.includes('コード') && !h.includes('ティッカー')),
       account:   colOf('口座'),
       shares:    colOf('保有数量'),
       avgCost:   colOf('平均取得価額'),
       curPrice:  colOf('現在値'),
       evalAmt:   colOf('時価評価額'),
-      // 「評価損益」列が2列（円・％）あるため単位で区別
+      
       evalGain:  headers.findIndex(h => h.includes('評価損益') && !h.includes('％') && !h.includes('%')),
       evalGainP: headers.findIndex(h => h.includes('評価損益') && (h.includes('％') || h.includes('%'))),
     };
 
-    // 必須列の存在確認
+    
     const required = { type: '種別', code: '銘柄コード', name: '銘柄', account: '口座', shares: '保有数量' };
     for (const [key, label] of Object.entries(required)) {
       if (COL[key] < 0) throw new Error(`「${label}」列が見つかりません（ヘッダー: ${headers.slice(0, 8).join(' | ')}）`);
@@ -2596,21 +2596,21 @@
     let dividendRecords = [];
 
     try {
-      // 保有株CSVパース
+      
       if (importFiles.holdings) {
         const result = await parseHoldingsCsv(importFiles.holdings);
         positions = result.positions;
         result.errors.forEach(e => allErrors.push({ file: '保有株CSV', ...e }));
       }
 
-      // 配当金CSVパース
+      
       if (importFiles.dividend) {
         const result = await parseDividendCsv(importFiles.dividend);
         dividendRecords = result.records;
         result.errors.forEach(e => allErrors.push({ file: '配当金CSV', ...e }));
       }
 
-      // エラーが多い場合は確認
+      
       if (allErrors.length > 0) {
         showImportErrors(allErrors);
         if (positions.length === 0 && dividendRecords.length === 0) {
@@ -2620,7 +2620,7 @@
         }
       }
 
-      // 同一銘柄の複数口座合算処理（銘柄マスタ用）+ スナップショット構築
+      
       await applyImport(yearMonth, positions, dividendRecords);
 
       statusEl.textContent = `✓ ${yearMonth} のデータをインポートしました（${positions.length}件）`;
@@ -2642,7 +2642,7 @@
     const snap = createSnapshot(yearMonth);
     snap.positions = positions;
 
-    // スナップショット保存（同月は上書き）
+    
     let snaps = getSnapshots();
     const idx = snaps.findIndex(s => s.id === yearMonth);
     if (idx >= 0) snaps[idx] = snap;
@@ -2650,7 +2650,7 @@
     snaps.sort((a, b) => a.id.localeCompare(b.id));
     saveSnapshots(snaps);
 
-    // 銘柄マスタ更新（新規銘柄のみ追加・既存は設定を保持）
+    
     const master = getStockMaster();
     for (const p of positions) {
       if (!master[p.code]) {
@@ -2660,18 +2660,18 @@
       }
     }
 
-    // 配当実績から payMonths と dividendForecast（csv）を設定
+    
     if (dividendRecords.length) {
       const hist = getDividendHist();
       for (const r of dividendRecords) {
         if (!master[r.code]) master[r.code] = createStockMasterEntry(r.code, r.name);
         const m = master[r.code];
 
-        // 入金月を記録
+        
         const month = parseInt(r.payDate.split('/')[1] || r.payDate.split('-')[1] || '0');
         if (month && !m.payMonths.includes(month)) m.payMonths.push(month);
 
-        // 配当予想をCSV実績で更新（手動上書き・API取得済みでなければ）
+        
         if (!m.dividendManual && m.dividendSource !== 'api') {
           if (r.perShare > 0) {
             m.dividendForecast = r.perShare;
@@ -2679,7 +2679,7 @@
           }
         }
 
-        // 重複チェックして配当履歴に追加
+        
         const exists = hist.some(h => h.code === r.code && h.payDate === r.payDate && h.account === r.account);
         if (!exists) hist.push(r);
       }
@@ -2690,11 +2690,11 @@
     renderSettingsTable();
     renderOBSteps();
 
-    // STEP 4: インポート後に最新株価を適用（キャッシュがあれば即時）
+    
     const cache = getPriceCache();
     if (cache && cache.prices) applyPriceCache(cache.prices, false);
 
-    // STEP 5: インポート後に配当予想をバックグラウンド取得
+    
     triggerDividendFetchAfterImport();
   }
 
@@ -2742,9 +2742,9 @@
     showToast(`${id} を削除しました`, 'info');
   }
 
-  // ============================================================
-  // STEP 6/7: 保有株サマリー・買い時アラート
-  // ============================================================
+  
+  
+  
 
   /** テーブルのソート状態 */
   const dashState = { col: 'yield', dir: 'desc' };
@@ -2800,7 +2800,7 @@
   const BADGE_LABEL = { double: '🔥 ダブル買い時', target: '🟡 目標超え', yield: '🟢 利回り向上', none: '－' };
   const BADGE_CLASS = { double: 'badge-double',   target: 'badge-target',  yield: 'badge-yield',  none: 'badge-none' };
 
-  // ---- ダッシュボード ----
+  
 
   /** ダッシュボード全体レンダリング */
   function renderDashboard() {
@@ -2860,7 +2860,7 @@
     renderDashSectorMini();
   }
 
-  // ---- アラートバナー（STEP 7） ----
+  
 
   /**
    * 買い時アラートバナー — 上位5件を乖離大きい順で表示
@@ -2918,7 +2918,7 @@
     }).join('');
   }
 
-  // ---- ERR-02 通知（STEP 6） ----
+  
 
   /** ERR-02: 配当予想未設定銘柄の通知バナーを表示 */
   function renderErr02Notice(positions, master) {
@@ -2942,7 +2942,7 @@
       `⚠️ ${missing.length} 銘柄の配当予想が未設定です（${top}${more}）— 利回り・アラート判定をスキップしています。`;
   }
 
-  // ---- テーブルソート・フィルター（STEP 6） ----
+  
 
   /** 列ヘッダークリック → ソート列切替（同列なら昇降反転） */
   function setDashSort(col) {
@@ -2962,7 +2962,7 @@
     });
   }
 
-  // ---- 保有株一覧テーブル（STEP 6） ----
+  
 
   /** 保有株一覧テーブルレンダリング（ソート・フィルター・ERR-02・合計行） */
   function renderDashTable() {
@@ -3001,7 +3001,7 @@
       }))
       .filter(row => !filterAlert || row.badge === filterAlert);
 
-    // ---- ソート ----
+    
     const dir = dashState.dir === 'desc' ? -1 : 1;
     rows.sort((a, b) => {
       switch (dashState.col) {
@@ -3020,7 +3020,7 @@
       }
     });
 
-    // 件数バッジ
+    
     const countEl = document.getElementById('dash-count-badge');
     if (countEl) {
       const total = snap.positions.length;
@@ -3033,7 +3033,7 @@
       return;
     }
 
-    // 合計集計
+    
     let totEval = 0, totGain = 0, totDiv = 0;
     for (const { p, m } of rows) {
       totEval += p.evalAmount || 0;
@@ -3044,19 +3044,19 @@
       }
     }
 
-    // 行生成
+    
     tbody.innerHTML = rows.map(({ p, m, badge, yld, drop }) => {
       const hasForecast = !!(m?.dividendForecast);
       const gainClass   = (p.evalGain || 0) >= 0 ? 'pos' : 'neg';
       const gainSign    = (p.evalGain || 0) >= 0 ? '+' : '';
 
-      // 株価ソースインジケータ
+      
       const srcHtml = p.priceSource === 'api' ? ''
         : p.priceSource === 'csv'
           ? ' <span style="color:var(--yellow);font-size:0.68rem;" title="CSV現在値">CSV</span>'
           : ' <span style="color:var(--red);font-size:0.68rem;" title="取得失敗">取得失敗</span>';
 
-      // 税引後利回りセル（ERR-02: 未設定なら「－」）
+      
       const yieldHtml = !hasForecast
         ? '<span class="muted" title="配当予想が未設定です（ERR-02）">－</span>'
         : yld !== null
@@ -3066,7 +3066,7 @@
               : '')
           : '<span class="muted">－</span>';
 
-      // ERR-02: 配当予想未設定行は薄いアンバー背景
+      
       const rowClass = !hasForecast ? ' class="err02-row"' : '';
 
       return `<tr${rowClass} onclick="openHoldingsDetail('${p.code}')">
@@ -3096,7 +3096,7 @@
           const coef     = TAX_COEF[p.account] ?? 0.79685;
           const costYld  = m.dividendForecast / p.avgCost * 100 * coef;
           const curr     = yld ?? 0;
-          // 時価利回りと比較してインジケーター表示
+          
           const diff     = curr - costYld;
           const indHtml  = diff > 0.1
             ? `<span style="font-size:0.7em;color:var(--green-light);margin-left:4px;" title="時価利回りの方が高い（株価下落・買増し検討）">▲</span>`
@@ -3116,7 +3116,7 @@
       </tr>`;
     }).join('');
 
-    // フッター合計行
+    
     if (tfoot) {
       const totGainClass = totGain >= 0 ? 'pos' : 'neg';
       const totGainSign  = totGain >= 0 ? '+' : '';
@@ -3131,9 +3131,9 @@
     }
   }
 
-  // ============================================================
-  // 設定画面
-  // ============================================================
+  
+  
+  
 
   function renderSettings() {
     const s = getSettings();
@@ -3229,7 +3229,7 @@
     tbody.innerHTML = codes.sort().map(code => {
       const m = master[code];
       const srcLabel = { api: '🌐 API', csv: '📄 CSV', manual: '✏️ 手動', none: '－' }[m.dividendSource] || '－';
-      // ERR-02: 配当予想が未設定の行をハイライト
+      
       const isErr02  = !m.dividendForecast || m.dividendForecast === 0;
       const rowClass = isErr02 ? ' class="err02-row settings-err02"' : '';
       return `<tr${rowClass}>
@@ -3306,9 +3306,9 @@
     showToast(`${code} の設定をリセットしました`, 'info');
   }
 
-  // ============================================================
-  // バックアップ / 全消去
-  // ============================================================
+  
+  
+  
 
   function exportBackup() {
     const data = { _version: 2, _exportedAt: new Date().toISOString() };
@@ -3363,9 +3363,9 @@
     renderImportHistory();
   }
 
-  // ============================================================
-  // 保有株一覧 詳細カードモーダル（スマホ用）
-  // ============================================================
+  
+  
+  
 
   function openHoldingsDetail(code) {
     if (window.innerWidth > 600) return;
@@ -3424,9 +3424,9 @@
     if (modal)   { modal.classList.remove('open');   modal.style.display   = 'none'; }
   }
 
-  // ============================================================
-  // フォーマットユーティリティ
-  // ============================================================
+  
+  
+  
 
   function fmtYen(n) {
     if (n == null || isNaN(n)) return '－';
@@ -3450,9 +3450,9 @@
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ============================================================
-  // テーブル文字サイズ切替 S/M/L
-  // ============================================================
+  
+  
+  
 
   const TABLE_SIZES = { S: '0.9rem', M: '1.1rem', L: '1.25rem' };
   const TBL_SIZE_KEY = 'hdp_tbl_size';
@@ -3479,9 +3479,9 @@
     applyTableSize(saved);
   }
 
-  // ============================================================
-  // テーマ切り替え（ライト / ダーク）
-  // ============================================================
+  
+  
+  
 
   const THEME_KEY = 'hdp_theme';
 
@@ -3501,9 +3501,9 @@
     setTheme(saved);
   }
 
-  // ============================================================
-  // STEP 4: J-Quants API V2 株価自動取得
-  // ============================================================
+  
+  
+  
 
   /**
    * ページング対応フェッチ（429リトライ付き）
@@ -3576,7 +3576,7 @@
     const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const cache = getPriceCache();
 
-    // 当日キャッシュが有効 → API呼び出し不要
+    
     if (cache && cache.date === today && Object.keys(cache.prices || {}).length > 0) {
       applyPriceCache(cache.prices, false);
       setNavStatus(`株価: ${today} (キャッシュ)`, 'ok');
@@ -3590,7 +3590,7 @@
       let targetDate = getRecentBusinessDate();
       let items = [];
 
-      // 最大15営業日さかのぼって再試行（祝日・未配信対策）
+      
       for (let attempt = 0; attempt < 15; attempt++) {
         items = await fetchWithPaging(
           `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/bars/daily?date=${targetDate}`,
@@ -3622,7 +3622,7 @@
       setNavStatus('株価取得失敗', 'err');
       showErr01Banner(e.message);
       console.error('fetchAllPrices:', e);
-      // フォールバック: スナップショット中の CSV 現在値をそのまま維持
+      
     }
   }
 
@@ -3683,9 +3683,9 @@
     if (el) el.style.display = 'none';
   }
 
-  // ============================================================
-  // F-05: 推移グラフ
-  // ============================================================
+  
+  
+  
 
   let _chartTab  = 'g1';
   let _mainChart = null;
@@ -3880,9 +3880,9 @@
     });
   }
 
-  // ============================================================
-  // F-06: 配当サマリー
-  // ============================================================
+  
+  
+  
 
   function renderDividendScreen() {
     const snap   = getLatestSnapshot();
@@ -3900,7 +3900,7 @@
     if (emptyEl)   emptyEl.style.display   = 'none';
     if (contentEl) contentEl.style.display = 'block';
 
-    // ---- 集計 ----
+    
     let grossTotal = 0, netTotal = 0;
     const monthlyForecast = Array(12).fill(0);
     let noPayMonthCount   = 0;
@@ -3923,11 +3923,11 @@
       }
     }
 
-    // 実績累計
+    
     const actualTotal  = hist.reduce((s, h) => s + (h.netAmt || 0), 0);
     const actualMonths = new Set(hist.map(h => h.payDate?.slice(0, 7))).size;
 
-    // ---- KPI ----
+    
     const el = (id) => document.getElementById(id);
     if (el('div-kpi-gross'))       el('div-kpi-gross').textContent       = fmtYen(grossTotal);
     if (el('div-kpi-net'))         el('div-kpi-net').textContent         = fmtYen(netTotal);
@@ -3937,10 +3937,10 @@
       ? `${actualMonths}ヶ月分の実績`
       : '配当金CSVをインポートすると表示';
 
-    // ---- 月次チャート ----
+    
     renderDivMonthChart(monthlyForecast, hist, noPayMonthCount);
 
-    // ---- 明細テーブル ----
+    
     renderDivDetailTable(snap, master, hist, grossTotal, netTotal);
   }
 
@@ -4055,9 +4055,9 @@
     </tr>`;
   }
 
-  // ============================================================
-  // F-07補助: セクター一括取得
-  // ============================================================
+  
+  
+  
 
   async function fetchAllSectors() {
     const s = getSettings();
@@ -4082,7 +4082,7 @@
 
     let successCount = 0, failCount = 0;
 
-    // equities/master は全銘柄を一度に取れるため1リクエストで済む
+    
     try {
       const res  = await fetchWithRetry(
         'https://jquants-proxy.drumsbaka.workers.dev/v2/equities/master',
@@ -4091,7 +4091,7 @@
       const json = await res.json();
       const equities = json.equities || json.data || [];
 
-      // code → equityのマップ作成（5桁コードと4桁コード両対応）
+      
       const eqMap = {};
       for (const eq of equities) {
         const c5 = String(eq.Code || '');
@@ -4110,7 +4110,7 @@
 
         if (stockM[code]) {
           if (name   && !stockM[code].name)     stockM[code].name     = name;
-          if (sector)                            stockM[code].sector33 = sector; // 常に上書き
+          if (sector)                            stockM[code].sector33 = sector; 
           successCount++;
         }
       }
@@ -4127,17 +4127,17 @@
     if (status) status.textContent =
       `完了（${successCount}件取得${failCount > 0 ? `・${failCount}件失敗` : ''}）`;
 
-    // セクター分散を再描画
+    
     renderSector();
-    // 設定テーブルも再描画
+    
     renderSettingsTable();
 
     showToast(`セクターを取得しました（${successCount} 銘柄）`, 'ok');
   }
 
-  // ============================================================
-  // F-07: セクター分散
-  // ============================================================
+  
+  
+  
 
   const SECTOR_COLORS = [
     '#c8a96e','#4a7fd4','#2e6b4f','#e05555','#f0c040',
@@ -4334,10 +4334,10 @@
         const m       = master[pos.code] || {};
         const taxCoef = TAX_COEF[pos.account] ?? 0.79685;
         const divAmt  = (m.dividendForecast || 0) * (pos.shares || 0) * taxCoef;
-        // モードに応じて構成比の分子を切り替える
+        
         const posVal  = _sectorMode === 'div' ? divAmt : (pos.evalAmount || 0);
         const rowPct  = total > 0 ? (posVal / total * 100).toFixed(1) : '0.0';
-        // モードに応じて左の金額列の表示を切り替える
+        
         const evalCell = _sectorMode === 'div'
           ? (divAmt > 0 ? '¥' + Math.round(divAmt).toLocaleString() : '<span class="muted">－</span>')
           : '¥' + Math.round(pos.evalAmount || 0).toLocaleString();
@@ -4373,7 +4373,7 @@
     if (section) section.style.display = 'block';
     if (!chartEl) return;
 
-    // 月次予想集計
+    
     const monthlyForecast = Array(12).fill(0);
     let noPayMonthCount   = 0;
     for (const pos of snap.positions) {
@@ -4390,7 +4390,7 @@
       }
     }
 
-    // 実績集計（配当金CSV）
+    
     const actualByMonth = Array(12).fill(0);
     for (const h of hist) {
       if (!h.payDate) continue;
@@ -4462,14 +4462,14 @@
       total    += pos.evalAmount || 0;
     }
 
-    // 全件表示（TOP_N制限なし）・構成比降順
+    
     const all = Object.entries(map).sort((a, b) => b[1] - a[1]);
 
     const barEl    = document.getElementById('dash-sector-stacked-bar');
     const legendEl = document.getElementById('dash-sector-legend');
     if (!barEl || !legendEl) return;
 
-    // 積み上げ横棒（全セクター）
+    
     barEl.innerHTML = all.map(([label, val], i) => {
       const pct       = total > 0 ? (val / total * 100) : 0;
       const color     = SECTOR_COLORS[i % SECTOR_COLORS.length];
@@ -4489,7 +4489,7 @@
       </div>`;
     }).join('');
 
-    // 凡例（3列グリッド・全件）
+    
     legendEl.innerHTML = all.map(([label, val], i) => {
       const pct   = total > 0 ? (val / total * 100) : 0;
       const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
@@ -4505,9 +4505,9 @@
     }).join('');
   }
 
-  // ============================================================
-  // STEP 5: J-Quants /fins/statements 配当予想バックグラウンド取得
-  // ============================================================
+  
+  
+  
 
   let _dividendFetchAborted = false;
 
@@ -4535,7 +4535,7 @@
     }
 
     const master = getStockMaster();
-    // 手動上書き銘柄はスキップ
+    
     const codes = Object.keys(master).filter(c => !master[c].dividendManual);
     if (!codes.length) {
       showToast('取得対象銘柄がありません（全て手動設定済み）', 'info');
@@ -4564,7 +4564,7 @@
         );
         const forecast = extractAnnualDividend(items);
         if (forecast > 0) {
-          // 書き込み直前に最新のLocalStorageから再取得してdividendManualを確認
+          
           const latestMaster = JSON.parse(localStorage.getItem('hdp_stock_master') || '{}');
           if (!latestMaster[code]?.dividendManual) {
             master[code].dividendForecast = forecast;
@@ -4577,14 +4577,14 @@
         console.warn(`配当予想取得失敗 [${code}]:`, e.message);
       }
 
-      // 最後の銘柄以外は3秒待機（APIレート制限対策）
+      
       if (i < codes.length - 1 && !_dividendFetchAborted) {
         await sleep(3000);
       }
     }
 
     if (!_dividendFetchAborted) {
-      // 取得日を記録
+      
       const s2 = getSettings();
       s2.lastDividendFetchDate = new Date().toISOString();
       saveSettings(s2);
@@ -4593,7 +4593,7 @@
     saveStockMaster(master);
     hideDividendProgress();
 
-    // UI更新
+    
     renderSettingsTable();
     renderOBSteps();
     if (document.getElementById('screen-dashboard').classList.contains('active')) {
@@ -4612,7 +4612,7 @@
   function extractAnnualDividend(items) {
     if (!items || !items.length) return 0;
 
-    // DiscDate 降順（末尾から遡る）で非空の値を探す
+    
     const sorted = [...items].sort((a, b) =>
       (b.DiscDate || '').localeCompare(a.DiscDate || '')
     );
@@ -4641,7 +4641,7 @@
   function triggerDividendFetchAfterImport() {
     const s = getSettings();
     if (!s.jquantsApiKey) return;
-    // fire-and-forget: インポート完了をブロックしない
+    
     fetchAllDividendForecasts().catch(e => console.error('dividend fetch error:', e));
   }
 
@@ -4678,11 +4678,11 @@
     });
   }
 
-  // ============================================================
-  // F-EV: 銘柄評価システム
-  // ============================================================
+  
+  
+  
 
-  // ---- CSS注入 ----
+  
   (function injectEvalStyles() {
     const style = document.createElement('style');
     style.textContent = `
@@ -4712,7 +4712,7 @@
     document.head.appendChild(style);
   })();
 
-  // ---- 定数 ----
+  
 
   /** 自動スコア7項目 */
   const EVAL_AUTO_ITEMS = [
@@ -4725,12 +4725,12 @@
     { key: 'scorePayoutRatio', label: '配当性向',          desc: '3点:30〜50% 2点:60%以下 1点:それ以外' },
   ];
 
-  // ---- 状態 ----
+  
   let _evalModalCode     = null;
   let _evalRadarChart    = null;
   let _autoCalcAbortFlag = false;
 
-  // ---- ストレージ ----
+  
 
   /** 評価マスタ取得（{code: evalEntry} のマップ） */
   function getEvalMaster() {
@@ -4755,7 +4755,7 @@
       scoreCash:        0,
       scoreDividend:    0,
       scorePayoutRatio: 0,
-      scoreCF:          0,   // 手動
+      scoreCF:          0,   
       noCovidCut:       null,
       returnPolicy:     null,
       returnComment:    '',
@@ -4765,7 +4765,7 @@
     };
   }
 
-  // ---- スコア計算 ----
+  
 
   function calcAutoTotal(ev) {
     return EVAL_AUTO_ITEMS.reduce((s, item) => s + (ev[item.key] || 0), 0);
@@ -4787,7 +4787,7 @@
     return 'var(--red)';
   }
 
-  // ---- 銘柄名・セクター補完（hdp_stock_master から） ----
+  
 
   function enrichEvalEntry(ev) {
     const stockMaster = getStockMaster();
@@ -4799,7 +4799,7 @@
     return ev;
   }
 
-  // ---- レンダリング ----
+  
 
   function renderEvaluation() {
     const evalMaster = getEvalMaster();
@@ -4859,7 +4859,7 @@
     }).join('');
   }
 
-  // ---- 単体評価開始 ----
+  
 
   async function startEvalSingle() {
     const input  = document.getElementById('eval-code-input');
@@ -4900,7 +4900,7 @@
     if (btn) btn.disabled = false;
   }
 
-  // ---- 一括再計算 ----
+  
 
   function abortAutoCalc() {
     _autoCalcAbortFlag = true;
@@ -4988,7 +4988,7 @@
     );
   }
 
-  // ---- 評価データクリア ----
+  
 
   function clearAllEval() {
     if (!confirm('全ての評価データを削除しますか？この操作は取り消せません。')) return;
@@ -4997,7 +4997,7 @@
     showToast('評価データをクリアしました', 'ok');
   }
 
-  // ---- モーダル ----
+  
 
   function openEvalModal(code) {
     _evalModalCode = code;
@@ -5025,7 +5025,7 @@
       noteEl.style.display = 'none';
     }
 
-    // 自動スコア7項目グリッド
+    
     document.getElementById('eval-auto-score-grid').innerHTML =
       EVAL_AUTO_ITEMS.map(item => {
         const score = ev[item.key] || 0;
@@ -5036,7 +5036,7 @@
         </div>`;
       }).join('');
 
-    // 手動ボタン状態
+    
     [0,1,2,3].forEach(v => {
       const b = document.getElementById(`btn-cf-${v}`);
       if (b) b.classList.toggle('active', (ev.scoreCF || 0) === v);
@@ -5060,7 +5060,7 @@
     if (_evalRadarChart) { _evalRadarChart.destroy(); _evalRadarChart = null; }
   }
 
-  // モーダル外クリックで閉じる
+  
   document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('eval-modal-overlay');
     if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) closeEvalModal(); });
@@ -5080,7 +5080,7 @@
     master[_evalModalCode][field] = value;
     saveEvalMaster(master);
 
-    // ボタン状態更新
+    
     if (field === 'scoreCF') {
       [0,1,2,3].forEach(v => {
         const b = document.getElementById(`btn-cf-${v}`);
@@ -5137,7 +5137,7 @@
     showToast('評価データを削除しました', 'ok');
   }
 
-  // ---- レーダーチャート（8軸：7自動 + CF手動） ----
+  
 
   function renderEvalRadar(ev) {
     const canvas = document.getElementById('eval-radar-chart');
@@ -5178,7 +5178,7 @@
     });
   }
 
-  // ---- API自動計算（fins/summary 1本・7項目） ----
+  
 
   async function calcAutoScoreForCode(code, apiKey) {
     const headers = { 'x-api-key': apiKey };
@@ -5194,8 +5194,8 @@
 
     const note = [];
 
-    // 期ごとにCurFYEnd年でグループ化（最大5期分・降順）
-    // 実際のAPIフィールド名: Sales/OP/EPS/EqAR/PayoutRatioAnn/CashEq/DivAnn 等
+    
+    
     const byYear = buildEvalYearlyData(summaryItems, [
       'Sales', 'OP', 'EPS', 'EqAR', 'PayoutRatioAnn',
       'DivAnn', 'FDivAnn', 'NxFDivAnn', 'CashEq',
@@ -5203,17 +5203,17 @@
 
     const latest = byYear[0] || {};
 
-    // 1. 売上高トレンド（Sales）
+    
     const revenues = byYear.map(y => y.Sales).filter(v => v != null && v > 0);
     const scoreRevenue = calcEvalTrendScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
-    // 2. EPS成長（EPS）
+    
     const eps = byYear.map(y => y.EPS).filter(v => v != null);
     const scoreEPS = calcEvalTrendScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
-    // 3. 営業利益率（OP / Sales・直近期）
+    
     let scoreOpMargin = 0;
     if (latest.OP != null && latest.Sales > 0) {
       const margin = latest.OP / latest.Sales * 100;
@@ -5224,8 +5224,8 @@
       note.push('営業利益率:データなし(IFRS等)');
     }
 
-    // 4. 自己資本比率（EqAR・直近期）
-    // EqARは0〜1の小数で格納されている（例: 0.498 = 49.8%）
+    
+    
     let scoreEquityRatio = 0;
     if (latest.EqAR != null) {
       const eqPct = latest.EqAR > 1 ? latest.EqAR : latest.EqAR * 100;
@@ -5236,12 +5236,12 @@
       note.push('自己資本比率:データなし(IFRS等)');
     }
 
-    // 5. 現金・同等物トレンド（CashEq）
+    
     const cash = byYear.map(y => y.CashEq).filter(v => v != null && v > 0);
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
-    // 6. 配当金/株トレンド（DivAnn → FDivAnn → NxFDivAnn）
+    
     const divs = byYear
       .map(y => {
         const v = y.DivAnn ?? y.FDivAnn ?? y.NxFDivAnn;
@@ -5251,8 +5251,8 @@
     const scoreDividend = calcEvalDividendScore(divs);
     if (divs.length < 2) note.push('配当実績データ不足');
 
-    // 7. 配当性向（PayoutRatioAnn・直近期）
-    // PayoutRatioAnnは0〜1の小数（例: 0.287 = 28.7%）
+    
+    
     let scorePayoutRatio = 0;
     if (latest.PayoutRatioAnn != null && latest.PayoutRatioAnn !== '') {
       const pr    = parseFloat(latest.PayoutRatioAnn);
@@ -5264,8 +5264,8 @@
       note.push('配当性向:データなし');
     }
 
-    // 銘柄名・セクターを equities/master から取得
-    // → hdp_eval_master と hdp_stock_master の両方を更新
+    
+    
     try {
       const masterRes = await fetchWithRetry(
         `https://jquants-proxy.drumsbaka.workers.dev/v2/equities/master?code=${code}`,
@@ -5278,14 +5278,14 @@
         const name   = eq.CoName || eq.Name || eq.CompanyName || '';
         const sector = eq.S33Nm  || eq.Sector33CodeName || eq.Sector33Name || '';
 
-        // hdp_eval_master を更新
+        
         const evalM = getEvalMaster();
         if (!evalM[code]) evalM[code] = defaultEvalEntry(code);
         if (name)   evalM[code].name   = name;
         if (sector) evalM[code].sector = sector;
         saveEvalMaster(evalM);
 
-        // hdp_stock_master も更新（保有銘柄の場合のみ反映）
+        
         const stockM = getStockMaster();
         if (stockM[code]) {
           if (name   && !stockM[code].name)     stockM[code].name     = name;
@@ -5310,30 +5310,30 @@
     const yearMap = {};
 
     for (const item of items) {
-      // FiscalYearが存在しないため CurFYEn（決算期末日）の年を使用
-      // 例: "2021-03-31" → "2021"
+      
+      
       const fyEnd = item['CurFYEn'] || item['CurPerEn'] || '';
       const year  = fyEnd.slice(0, 4);
       if (!year) continue;
 
-      // 四半期・修正開示は除外し、通期（FY）のみ対象
+      
       const docType   = (item.DocType || item.TypeOfDocument || '').toLowerCase();
       const perType   = (item.CurPerType || '').toUpperCase();
 
-      // 四半期（1Q/2Q/3Q）は除外
+      
       if (perType && perType !== 'FY' && perType !== 'H1') continue;
-      // 修正・訂正は除外
+      
       if (docType.includes('revision') || docType.includes('earncorrect') ||
           docType.includes('correct')) continue;
 
-      // 同一年で最新DiscDateのレコードを採用
+      
       if (!yearMap[year] || (item.DiscDate || '') > (yearMap[year].DiscDate || '')) {
         yearMap[year] = item;
       }
     }
 
     return Object.keys(yearMap)
-      .sort((a, b) => b.localeCompare(a))  // 新しい年が先頭
+      .sort((a, b) => b.localeCompare(a))  
       .slice(0, 5)
       .map(year => {
         const item = yearMap[year];
@@ -5377,45 +5377,45 @@
     return 2;
   }
 
-  // ============================================================
-  // 初期化
-  // ============================================================
+  
+  
+  
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // ナビゲーション動的生成
+    
     buildNav();
     buildBnav();
 
-    // 保有株詳細カードを確実に非表示にする（CSS未適用時の保険）
+    
     const hdModal   = document.getElementById('holdings-detail-modal');
     const hdOverlay = document.getElementById('holdings-detail-overlay');
     if (hdModal)   { hdModal.classList.remove('open');   hdModal.style.display   = 'none'; }
     if (hdOverlay) { hdOverlay.classList.remove('open'); hdOverlay.style.display = 'none'; }
 
-    // 今月をデフォルト月に設定
+    
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const importMonth = document.getElementById('import-month');
     if (importMonth) importMonth.value = ym;
 
-    // テーブル文字サイズを復元（LocalStorage → デフォルト M）
+    
     loadTableSize();
 
-    // テーマを復元（LocalStorage → デフォルト dark）
+    
     loadTheme();
 
-    // 初期画面レンダリング
+    
     renderDashboard();
     renderOBSteps();
     checkStorageUsage();
 
-    // STEP 4: 株価自動取得（1日1回・非同期）
+    
     fetchAllPrices().catch(e => console.error('初期株価取得エラー:', e));
 
-    // STEP 5: 配当予想取得（週1回・バックグラウンド）
+    
     scheduleDividendFetch().catch(e => console.error('配当予想スケジュールエラー:', e));
 
-    // PWA: Service Worker 登録
+    
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/dividend-app/sw.js')
         .then(() => console.log('Service Worker 登録完了'))
