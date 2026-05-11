@@ -284,8 +284,8 @@
       }
 
       .bnav-item svg {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         stroke: currentColor;
         fill: none;
         stroke-width: 1.8;
@@ -294,7 +294,14 @@
         flex-shrink: 0;
         pointer-events: none;
       }
-      .bnav-item span { pointer-events: none; }
+      .bnav-item span {
+        pointer-events: none;
+        font-size: 0.6rem;
+      }
+      .bnav-item {
+        min-width: 52px;
+        max-width: 72px;
+      }
     }
 
     /* ===== 画面コンテナ ===== */
@@ -381,6 +388,10 @@
       top: var(--nav-h);
       z-index: 10;
       background: var(--bg3);
+    }
+    @media (max-width: 600px) {
+      /* テーブルフッター合計行をスマホで非表示（下部ナビと被るため） */
+      #dash-table-foot { display: none !important; }
     }
     @media (max-width: 600px) {
       /* スマホではスティッキーヘッダーを完全無効化 */
