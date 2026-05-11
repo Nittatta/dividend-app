@@ -389,6 +389,7 @@
       #settings-table thead th {
         position: relative !important;
         top: auto !important;
+        z-index: auto !important;
       }
     }
     td {
@@ -3080,7 +3081,7 @@
                 color:${isSet ? '#fff' : 'var(--text-muted)'};cursor:pointer;"
                 title="この値を利回り目標に設定">${isSet ? '✓設定済' : '目標に設定'}</button>`;
         })()}</td>
-        <td style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
+        <td class="pc-only" style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
       </tr>`;
     }).join('');
