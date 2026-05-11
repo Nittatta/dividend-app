@@ -114,6 +114,63 @@
     #bnav-sort-badge { display: none; }
     #bnav-scroll { display: none; }
 
+    /* ===== 保有株一覧 スマホ5列表示 ===== */
+    @media (max-width: 600px) {
+      /* PC専用列を非表示 */
+      .pc-only { display: none !important; }
+      /* テーブル幅をコンテナ内に収める */
+      #dash-table-wrap { overflow-x: hidden !important; }
+      #dash-table { font-size: 0.78rem; table-layout: fixed; width: 100%; }
+      /* 列幅指定 */
+      #dash-table th:nth-child(1),
+      #dash-table td:nth-child(1) { width: 38%; }
+      #dash-table th:nth-child(2),
+      #dash-table td:nth-child(2) { width: 14%; }
+      #dash-table th:nth-child(6),
+      #dash-table td:nth-child(6) { width: 22%; }
+      #dash-table th:nth-child(9),
+      #dash-table td:nth-child(9) { width: 18%; }
+      #dash-table th:nth-child(12),
+      #dash-table td:nth-child(12) { width: 18%; }
+      /* S/M/Lサイズボタン非表示 */
+      #dash-table ~ div .btn-tblsize { display: none; }
+      /* タップ可能な行を示す */
+      #dash-table tbody tr { cursor: pointer; }
+      #dash-table tbody tr:active { background: rgba(200,169,110,0.08); }
+
+      /* ===== 詳細カードモーダル ===== */
+      #holdings-detail-modal {
+        position: fixed;
+        bottom: var(--bottom-nav-h);
+        left: 0; right: 0;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        padding: 16px;
+        z-index: 1500;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+        transform: translateY(100%);
+        transition: transform 0.25s ease;
+      }
+      #holdings-detail-modal.open {
+        transform: translateY(0);
+      }
+      #holdings-detail-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1499;
+      }
+      #holdings-detail-overlay.open {
+        display: block;
+      }
+    }
+    @media (min-width: 601px) {
+      #holdings-detail-modal { display: none !important; }
+      #holdings-detail-overlay { display: none !important; }
+    }
+
     @media (max-width: 600px) {
       /* セクター構成凡例をスマホでは2列に */
       #dash-sector-legend {
@@ -1117,15 +1174,15 @@
           <tr>
             <th class="th-sort" onclick="setDashSort('code')">コード / 銘柄<span class="sort-ind" data-col="code"></span></th>
             <th class="th-sort" style="text-align:left;" onclick="setDashSort('account')">口座<span class="sort-ind" data-col="account"></span></th>
-            <th class="th-sort" onclick="setDashSort('shares')">株数<span class="sort-ind" data-col="shares"></span></th>
-            <th>平均取得単価</th>
-            <th>現在値</th>
+            <th class="th-sort pc-only" onclick="setDashSort('shares')">株数<span class="sort-ind" data-col="shares"></span></th>
+            <th class="pc-only">平均取得単価</th>
+            <th class="pc-only">現在値</th>
             <th class="th-sort" onclick="setDashSort('eval')">時価評価額<span class="sort-ind" data-col="eval"></span></th>
-            <th class="th-sort" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
-            <th>配当予想/株</th>
+            <th class="th-sort pc-only" onclick="setDashSort('gain')">評価損益<span class="sort-ind" data-col="gain"></span></th>
+            <th class="pc-only">配当予想/株</th>
             <th class="th-sort" onclick="setDashSort('yield')">税引後利回り<span class="sort-ind" data-col="yield"></span></th>
-              <th class="th-sort" onclick="setDashSort('costyield')" title="簿価利回り（YOC）&#10;= 現在の配当予想 ÷ 平均取得単価（税引後）&#10;時価利回りより高い = 株価上昇中（含み益）&#10;時価利回りより低い = 株価下落中（買増し検討）">簿価利回り <span style="font-size:0.7em;color:var(--text-muted);">YOC</span><span class="sort-ind" data-col="costyield"></span></th>
-            <th style="text-align:left;">セクター</th>
+            <th class="th-sort pc-only" onclick="setDashSort('costyield')" title="簿価利回り（YOC）&#10;= 現在の配当予想 ÷ 平均取得単価（税引後）&#10;時価利回りより高い = 株価上昇中（含み益）&#10;時価利回りより低い = 株価下落中（買増し検討）">簿価利回り <span style="font-size:0.7em;color:var(--text-muted);">YOC</span><span class="sort-ind" data-col="costyield"></span></th>
+            <th class="pc-only" style="text-align:left;">セクター</th>
             <th>アラート</th>
           </tr>
         </thead>
@@ -1570,6 +1627,7 @@
           <thead>
             <tr>
               <th>コード / 銘柄</th>
+              <th>セクター</th>
               <th>配当予想/株 (円)</th>
               <th>ソース</th>
               <th>利回り目標 (%)</th>
@@ -1580,7 +1638,7 @@
           </thead>
           <tbody id="settings-table-body">
             <tr>
-              <td colspan="7" class="muted" style="text-align:center;padding:24px;">
+              <td colspan="8" class="muted" style="text-align:center;padding:24px;">
                 CSVをインポートするとここに銘柄が表示されます。
               </td>
             </tr>
@@ -1689,6 +1747,22 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ===== 保有株一覧 詳細カードモーダル（スマホ用） ===== -->
+  <div id="holdings-detail-overlay" onclick="closeHoldingsDetail()"></div>
+  <div id="holdings-detail-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-size:1rem;font-weight:700;" id="hd-name">銘柄名</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);" id="hd-code-sector"></div>
+      </div>
+      <button onclick="closeHoldingsDetail()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="hd-grid"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeHoldingsDetail();showScreen('settings')">設定画面へ</button>
+    </div>
   </div>
 
   <!-- screen-import は設定タブに統合済みのため削除 -->
@@ -2925,7 +2999,7 @@
       // ERR-02: 配当予想未設定行は薄いアンバー背景
       const rowClass = !hasForecast ? ' class="err02-row"' : '';
 
-      return `<tr${rowClass}>
+      return `<tr${rowClass} onclick="openHoldingsDetail('${p.code}')">
         <td>
           <span style="font-family:'Roboto Mono',monospace;color:var(--text-muted);font-size:0.91em;">${p.code}</span>
           <span style="margin-left:6px;">${escHtml(p.name)}</span>
@@ -2935,15 +3009,15 @@
             ${p.account === 'NISA成長投資枠' ? 'NISA' : '特定'}
           </span>
         </td>
-        <td>${fmtNum(p.shares)}</td>
-        <td>${fmtYen(p.avgCost)}</td>
-        <td>${fmtYen(p.currentPrice)}${srcHtml}</td>
+        <td class="pc-only">${fmtNum(p.shares)}</td>
+        <td class="pc-only">${fmtYen(p.avgCost)}</td>
+        <td class="pc-only">${fmtYen(p.currentPrice)}${srcHtml}</td>
         <td>${fmtYen(p.evalAmount)}</td>
-        <td class="${gainClass}">
+        <td class="${gainClass} pc-only">
           ${gainSign}${fmtYen(p.evalGain)}<br>
           <span style="font-size:0.89em;">${gainSign}${(p.evalGainPct || 0).toFixed(1)}%</span>
         </td>
-        <td>${hasForecast
+        <td class="pc-only">${hasForecast
           ? fmtYen(m.dividendForecast)
           : '<span class="err02-badge" title="設定画面で入力してください">未設定</span>'}</td>
         <td>${yieldHtml}</td>
@@ -3079,7 +3153,7 @@
     const codes = Object.keys(master);
     const tbody = document.getElementById('settings-table-body');
     if (!codes.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px;">CSVをインポートするとここに銘柄が表示されます。</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="muted" style="text-align:center;padding:24px;">CSVをインポートするとここに銘柄が表示されます。</td></tr>';
       return;
     }
     tbody.innerHTML = codes.sort().map(code => {
@@ -3092,6 +3166,10 @@
         <td>
           <span style="font-family:'Roboto Mono',monospace;font-size:0.75rem;color:var(--text-muted);">${code}</span>
           <span style="margin-left:6px;">${escHtml(m.name)}</span>
+        </td>
+        <td>
+          <input type="text" value="${escHtml(m.sector33 || '')}" placeholder="例: 食料品"
+            style="width:100px;font-size:0.8rem;" onchange="updateMaster('${code}','sector33',this.value)">
         </td>
         <td>
           <input type="number" step="0.01" value="${m.dividendForecast || ''}" placeholder="0.00"
@@ -3213,6 +3291,63 @@
     renderDashboard();
     renderSettings();
     renderImportHistory();
+  }
+
+  // ============================================================
+  // 保有株一覧 詳細カードモーダル（スマホ用）
+  // ============================================================
+
+  function openHoldingsDetail(code) {
+    if (window.innerWidth > 600) return;
+    const snap   = getLatestSnapshot();
+    const master = getStockMaster();
+    if (!snap) return;
+    const p = snap.positions.find(pos => pos.code === code);
+    const m = master[code] || {};
+    if (!p) return;
+
+    const gainClass = (p.evalGain || 0) >= 0 ? 'var(--green-light)' : 'var(--red)';
+    const gainSign  = (p.evalGain || 0) >= 0 ? '+' : '';
+    const coef      = TAX_COEF[p.account] ?? 0.79685;
+    const yld       = m.dividendForecast
+      ? (m.dividendForecast / (p.currentPrice || p.avgCost) * 100 * coef)
+      : null;
+    const costYld   = m.dividendForecast && p.avgCost
+      ? (m.dividendForecast / p.avgCost * 100 * coef)
+      : null;
+
+    document.getElementById('hd-name').textContent =
+      `${escHtml(p.name)}`;
+    document.getElementById('hd-code-sector').textContent =
+      `${p.code}　${m.sector33 || '未分類'}　${p.account === 'NISA成長投資枠' ? 'NISA' : '特定口座'}`;
+
+    const items = [
+      { label: '株数',         value: `${fmtNum(p.shares)} 株` },
+      { label: '平均取得単価', value: fmtYen(p.avgCost) },
+      { label: '現在値',       value: fmtYen(p.currentPrice) },
+      { label: '時価評価額',   value: fmtYen(p.evalAmount) },
+      { label: '評価損益',     value: `${gainSign}${fmtYen(p.evalGain)}`, color: gainClass },
+      { label: '含み益率',     value: `${gainSign}${(p.evalGainPct || 0).toFixed(1)}%`, color: gainClass },
+      { label: '配当予想/株',  value: m.dividendForecast ? fmtYen(m.dividendForecast) : '未設定' },
+      { label: '税引後利回り', value: yld !== null ? `${yld.toFixed(2)}%` : '－', color: 'var(--gold)' },
+      { label: '簿価利回り(YOC)', value: costYld !== null ? `${costYld.toFixed(2)}%` : '－', color: 'var(--blue-light)' },
+      { label: '利回り目標',   value: m.alertThreshold ? `${m.alertThreshold}%` : '未設定' },
+    ];
+
+    document.getElementById('hd-grid').innerHTML = items.map(item => `
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;">
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:4px;">${item.label}</div>
+        <div style="font-size:0.9rem;font-weight:700;font-family:'Roboto Mono',monospace;color:${item.color || 'var(--text)'};">${item.value}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('holdings-detail-overlay').classList.add('open');
+    document.getElementById('holdings-detail-modal').classList.add('open');
+  }
+
+  function closeHoldingsDetail() {
+    document.getElementById('holdings-detail-overlay').classList.remove('open');
+    document.getElementById('holdings-detail-modal').classList.remove('open');
   }
 
   // ============================================================
