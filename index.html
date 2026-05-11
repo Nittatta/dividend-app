@@ -3374,13 +3374,17 @@
       </div>
     `).join('');
 
-    document.getElementById('holdings-detail-overlay').classList.add('open');
-    document.getElementById('holdings-detail-modal').classList.add('open');
+    const overlay = document.getElementById('holdings-detail-overlay');
+    const modal   = document.getElementById('holdings-detail-modal');
+    if (overlay) { overlay.style.display = 'block'; overlay.classList.add('open'); }
+    if (modal)   { modal.style.display   = 'block'; modal.classList.add('open'); }
   }
 
   function closeHoldingsDetail() {
-    document.getElementById('holdings-detail-overlay').classList.remove('open');
-    document.getElementById('holdings-detail-modal').classList.remove('open');
+    const overlay = document.getElementById('holdings-detail-overlay');
+    const modal   = document.getElementById('holdings-detail-modal');
+    if (overlay) { overlay.classList.remove('open'); overlay.style.display = 'none'; }
+    if (modal)   { modal.classList.remove('open');   modal.style.display   = 'none'; }
   }
 
   // ============================================================
@@ -5344,6 +5348,12 @@
     // ナビゲーション動的生成
     buildNav();
     buildBnav();
+
+    // 保有株詳細カードを確実に非表示にする（CSS未適用時の保険）
+    const hdModal   = document.getElementById('holdings-detail-modal');
+    const hdOverlay = document.getElementById('holdings-detail-overlay');
+    if (hdModal)   { hdModal.classList.remove('open');   hdModal.style.display   = 'none'; }
+    if (hdOverlay) { hdOverlay.classList.remove('open'); hdOverlay.style.display = 'none'; }
 
     // 今月をデフォルト月に設定
     const now = new Date();
