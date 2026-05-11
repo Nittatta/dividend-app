@@ -124,16 +124,15 @@
       .pc-only { display: none !important; }
       #dash-table { font-size: 0.78rem; table-layout: fixed; width: 100%; }
       /* 列幅指定 */
+      /* 4列表示: コード/銘柄 45% / 時価評価額 22% / 税引後利回り 18% / アラート 15% */
       #dash-table th:nth-child(1),
-      #dash-table td:nth-child(1) { width: 38%; }
-      #dash-table th:nth-child(2),
-      #dash-table td:nth-child(2) { width: 14%; }
+      #dash-table td:nth-child(1) { width: 45%; }
       #dash-table th:nth-child(6),
       #dash-table td:nth-child(6) { width: 22%; }
       #dash-table th:nth-child(9),
       #dash-table td:nth-child(9) { width: 18%; }
       #dash-table th:nth-child(12),
-      #dash-table td:nth-child(12) { width: 18%; }
+      #dash-table td:nth-child(12) { width: 15%; }
       /* S/M/Lサイズボタン非表示 */
       #dash-table ~ div .btn-tblsize { display: none; }
       /* タップ可能な行を示す */
@@ -391,6 +390,26 @@
         top: auto !important;
         z-index: auto !important;
       }
+    }
+    @media (max-width: 600px) {
+      /* アラートバッジをスマホで短縮表示 */
+      #dash-table .badge-double::after { content: '🔥'; }
+      #dash-table .badge-target::after { content: '🟡'; }
+      #dash-table .badge-yield::after  { content: '🟢'; }
+      #dash-table .badge { font-size: 0; }
+      #dash-table .badge::after { font-size: 1.2rem; }
+
+      /* 税引後利回りの「目標 X%」サブテキストを非表示 */
+      #dash-table td .sp-hide { display: none; }
+
+      /* 「目標に設定」ボタンを非表示 */
+      #dash-table td .sp-hide-btn { display: none; }
+
+      /* 時価評価額の.0を省略（CSSでは無理なのでJS側で対応） */
+
+      /* 口座列を非表示にして列数を4列に削減 */
+      #dash-table th:nth-child(2),
+      #dash-table td:nth-child(2) { display: none; }
     }
     td {
       padding: 8px 10px;
@@ -3032,7 +3051,7 @@
         : yld !== null
           ? `<span class="${yld >= (m?.alertThreshold || 0) ? 'pos' : ''}">${yld.toFixed(2)}%</span>`
             + (m?.alertThreshold
-              ? `<br><span style="font-size:0.76em;color:var(--text-muted);">目標 ${m.alertThreshold}%</span>`
+              ? `<br><span class="sp-hide" style="font-size:0.76em;color:var(--text-muted);">目標 ${m.alertThreshold}%</span>`
               : '')
           : '<span class="muted">－</span>';
 
@@ -3052,7 +3071,7 @@
         <td class="pc-only">${fmtNum(p.shares)}</td>
         <td class="pc-only">${fmtYen(p.avgCost)}</td>
         <td class="pc-only">${fmtYen(p.currentPrice)}${srcHtml}</td>
-        <td>${fmtYen(p.evalAmount)}</td>
+        <td>${p.evalAmount != null ? '¥' + Math.round(p.evalAmount).toLocaleString('ja-JP') : '－'}</td>
         <td class="${gainClass} pc-only">
           ${gainSign}${fmtYen(p.evalGain)}<br>
           <span style="font-size:0.89em;">${gainSign}${(p.evalGainPct || 0).toFixed(1)}%</span>
@@ -3079,7 +3098,7 @@
                 style="padding:1px 6px;font-size:0.65rem;border-radius:3px;margin-top:2px;
                 border:1px solid var(--border);background:${isSet ? 'var(--blue)' : 'transparent'};
                 color:${isSet ? '#fff' : 'var(--text-muted)'};cursor:pointer;"
-                title="この値を利回り目標に設定">${isSet ? '✓設定済' : '目標に設定'}</button>`;
+                title="この値を利回り目標に設定" class="sp-hide-btn">${isSet ? '✓設定済' : '目標に設定'}</button>`;
         })()}</td>
         <td class="pc-only" style="text-align:left;font-family:'BIZ UDPGothic',sans-serif;font-size:0.8rem;color:var(--text-muted);">${m?.sector33 || '－'}</td>
         <td><span class="badge ${BADGE_CLASS[badge]}">${BADGE_LABEL[badge]}</span></td>
