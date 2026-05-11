@@ -114,6 +114,10 @@
     #bnav-sort-badge { display: none; }
     #bnav-scroll { display: none; }
 
+    /* ===== 保有株詳細カード（デフォルト非表示） ===== */
+    #holdings-detail-modal  { display: none; }
+    #holdings-detail-overlay { display: none; }
+
     /* ===== 保有株一覧 スマホ5列表示 ===== */
     @media (max-width: 600px) {
       /* PC専用列を非表示 */
@@ -140,6 +144,7 @@
 
       /* ===== 詳細カードモーダル ===== */
       #holdings-detail-modal {
+        display: block;
         position: fixed;
         bottom: var(--bottom-nav-h);
         left: 0; right: 0;
@@ -195,9 +200,9 @@
       #nav #nav-items { display: none !important; }
       #nav .nav-brand { font-size: 0.95rem; }
 
-      /* 並び替えモードバッジ */
-      #bnav-sort-badge {
-        display: inline-flex;
+      /* 並び替えモードバッジ（JSで .active を付けた時のみ表示） */
+      #bnav-sort-badge.active {
+        display: inline-flex !important;
         align-items: center;
         gap: 4px;
         font-size: 0.72rem;
@@ -567,6 +572,35 @@
     .toast.toast-err  { border-color: var(--red); color: #ff8080; }
     .toast.toast-info { border-color: var(--blue); color: var(--blue-light); }
     @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* ===== スマホ：固定要素が下部ナビと被らないよう調整 ===== */
+    @media (max-width: 600px) {
+      /* トーストを下部ナビの上に表示 */
+      #toast-container {
+        bottom: calc(var(--bottom-nav-h) + 12px);
+        right: 12px;
+      }
+      /* 配当予想取得プログレスパネル */
+      #div-fetch-panel {
+        bottom: calc(var(--bottom-nav-h) + 12px);
+        left: 12px;
+        min-width: 0;
+        width: calc(100vw - 24px);
+      }
+      /* 銘柄評価プログレスパネル */
+      #eval-progress-panel {
+        bottom: calc(var(--bottom-nav-h) + 12px);
+        right: 12px;
+        min-width: 0;
+        width: calc(100vw - 24px);
+      }
+      /* 設定テーブルを横スクロール可能に */
+      #settings-table-wrap {
+        overflow-x: auto !important;
+      }
+      /* S/M/Lサイズ切替ボタン非表示（スマホでは不要） */
+      .btn-tblsize { display: none !important; }
+    }
 
     /* ===== ストレージ警告バナー ===== */
     #storage-warn-banner { display: none; }
@@ -2109,10 +2143,9 @@
     const nav   = document.getElementById('bottom-nav');
     const badge = document.getElementById('bnav-sort-badge');
     if (nav)   nav.classList.add('sort-mode');
-    if (badge) badge.style.display = 'inline-flex';
-    // 軽くバイブレーション（対応端末のみ）
+    if (badge) badge.classList.add('active');
     if (navigator.vibrate) navigator.vibrate(30);
-    showToast('長押しで並び替えモード。ドラッグで移動、ヘッダーの✕で終了', 'info', 2500);
+    showToast('並び替えモード：ドラッグで移動、✕で終了', 'info', 2500);
   }
 
   function exitBnavSortMode() {
@@ -2120,7 +2153,7 @@
     const nav   = document.getElementById('bottom-nav');
     const badge = document.getElementById('bnav-sort-badge');
     if (nav)   nav.classList.remove('sort-mode');
-    if (badge) badge.style.display = 'none';
+    if (badge) badge.classList.remove('active');
     saveBnavOrder();
     buildBnav();
   }
