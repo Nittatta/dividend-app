@@ -5203,35 +5203,50 @@
 
     const latest = byYear[0] || {};
 
-    // 1. 売上高トレンド（Sales）
+    // 1. 売上高トレンド（Sales・前年比成長率）
     const revenues = byYear.map(y => y.Sales).filter(v => v != null && v > 0);
-    const scoreRevenue = calcEvalTrendScore(revenues);
+    const scoreRevenue = calcRevenueGrowthScore(revenues);
     if (revenues.length < 2) note.push('売上高データ不足');
 
-    // 2. EPS成長（EPS）
+    // 2. EPS成長（EPS・CAGR + 連続プラス判定）
     const eps = byYear.map(y => y.EPS).filter(v => v != null);
-    const scoreEPS = calcEvalTrendScore(eps);
+    const scoreEPS = calcEPSGrowthScore(eps);
     if (eps.length < 2) note.push('EPSデータ不足');
 
-    // 3. 営業利益率（OP / Sales・直近期）
+    // 3. 営業利益率（OP / Sales・5期平均）
     let scoreOpMargin = 0;
-    if (latest.OP != null && latest.Sales > 0) {
-      const margin = latest.OP / latest.Sales * 100;
-      if      (margin >= 10) scoreOpMargin = 3;
-      else if (margin >= 7)  scoreOpMargin = 2;
-      else                   scoreOpMargin = 1;
+    const margins = byYear
+      .filter(y => y.OP != null && y.Sales != null && y.Sales > 0)
+      .map(y => y.OP / y.Sales * 100);
+    if (margins.length > 0) {
+      const avgMargin = margins.reduce((s, v) => s + v, 0) / margins.length;
+      if      (avgMargin >= 10) scoreOpMargin = 3;
+      else if (avgMargin >= 7)  scoreOpMargin = 2;
+      else                      scoreOpMargin = 1;
     } else {
       note.push('営業利益率:データなし(IFRS等)');
     }
 
     // 4. 自己資本比率（EqAR・直近期）
-    // EqARは0〜1の小数で格納されている（例: 0.498 = 49.8%）
-    let scoreEquityRatio = 0;
+    // 銀行業・証券業・保険業は閾値を変える
+    const stockMForSector = getStockMaster();
+    const evalMForSector  = getEvalMaster();
+    const sectorName      = stockMForSector[code]?.sector33 || evalMForSector[code]?.sector || '';
+    const isFinancial     = ['銀行業', '証券業', '保険業'].some(s => sectorName.includes(s));
+    let scoreEquityRatio  = 0;
     if (latest.EqAR != null) {
       const eqPct = latest.EqAR > 1 ? latest.EqAR : latest.EqAR * 100;
-      if      (eqPct >= 50) scoreEquityRatio = 3;
-      else if (eqPct >= 40) scoreEquityRatio = 2;
-      else                  scoreEquityRatio = 1;
+      if (isFinancial) {
+        if      (eqPct >= 10) scoreEquityRatio = 3;
+        else if (eqPct >= 8)  scoreEquityRatio = 2;
+        else if (eqPct >= 4)  scoreEquityRatio = 1;
+        else                  scoreEquityRatio = 0;
+      } else {
+        if      (eqPct >= 80) scoreEquityRatio = 3;
+        else if (eqPct >= 50) scoreEquityRatio = 2;
+        else if (eqPct >= 40) scoreEquityRatio = 1;
+        else                  scoreEquityRatio = 0;
+      }
     } else {
       note.push('自己資本比率:データなし(IFRS等)');
     }
@@ -5241,15 +5256,38 @@
     const scoreCash = calcEvalTrendScore(cash);
     if (cash.length < 2) note.push('現金データ不足');
 
-    // 6. 配当金/株トレンド（DivAnn → FDivAnn → NxFDivAnn）
-    const divs = byYear
-      .map(y => {
-        const v = y.DivAnn ?? y.FDivAnn ?? y.NxFDivAnn;
+    // 6. 配当金/株トレンド
+    // 優先：楽天CSV実績（分割調整済み） → フォールバック：FDivAnn → NxFDivAnn
+    const divHist = getDividendHist().filter(r => r.code === code);
+    const divByCalYear = {};
+    for (const r of divHist) {
+      const year = (r.payDate || '').slice(0, 4);
+      if (!year) continue;
+      divByCalYear[year] = (divByCalYear[year] || 0) + (r.perShare || 0);
+    }
+    const csvDivValues = Object.keys(divByCalYear)
+      .sort((a, b) => b.localeCompare(a))
+      .slice(0, 5)
+      .map(y => divByCalYear[y])
+      .filter(v => v > 0);
+
+    let scoreDividend;
+    if (csvDivValues.length >= 2) {
+      // CSV実績が2期分以上あればそれを優先使用（分割調整済みのため無配チェック省略）
+      scoreDividend = calcEvalDividendScore(csvDivValues);
+    } else {
+      // フォールバック：FDivAnn → NxFDivAnn（DivAnnは分割未調整のため除外）
+      const rawDivs = byYear.map(y => {
+        const v = y.FDivAnn ?? y.NxFDivAnn;
         return (v != null && v !== '') ? parseFloat(v) : null;
-      })
-      .filter(v => v != null && v > 0);
-    const scoreDividend = calcEvalDividendScore(divs);
-    if (divs.length < 2) note.push('配当実績データ不足');
+      });
+      const hasEverPaid = rawDivs.some(v => v != null && v > 0);
+      const hasNoPay    = rawDivs.some(v => v === 0);
+      const hasMushai   = hasEverPaid && hasNoPay;
+      const divs = rawDivs.filter(v => v != null && v > 0);
+      scoreDividend = hasMushai ? 0 : calcEvalDividendScore(divs);
+      if (divs.length < 2) note.push('配当実績データ不足');
+    }
 
     // 7. 配当性向（PayoutRatioAnn・直近期）
     // PayoutRatioAnnは0〜1の小数（例: 0.287 = 28.7%）
@@ -5349,6 +5387,37 @@
         }
         return row;
       });
+  }
+
+  // ① 売上高トレンド：直近1期の前年比成長率で判定
+  function calcRevenueGrowthScore(values) {
+    if (!values || values.length < 2) return 0;
+    const growth = (values[0] - values[1]) / values[1] * 100;
+    if (growth < 0) return 0;
+    if (growth < 5) return 1;
+    if (growth < 8) return 2;
+    return 3;
+  }
+
+  // ② EPS成長：最新>最古 + 5期連続プラス + CAGR判定
+  function calcEPSGrowthScore(values) {
+    if (!values || values.length < 2) return 0;
+    const latest = values[0];
+    const oldest = values[values.length - 1];
+    if (latest <= oldest) return 0;
+
+    // 5期連続プラス（毎年増加）か確認
+    let allIncrease = true;
+    for (let i = 0; i < values.length - 1; i++) {
+      if (values[i] <= values[i + 1]) { allIncrease = false; break; }
+    }
+    if (!allIncrease) return 1;
+
+    // CAGR（oldest<=0の場合は計算不能→2点止まり）
+    if (oldest <= 0) return 2;
+    const years = values.length - 1;
+    const cagr  = Math.pow(latest / oldest, 1 / years) - 1;
+    return cagr >= 0.1 ? 3 : 2;
   }
 
   function calcEvalTrendScore(values) {
