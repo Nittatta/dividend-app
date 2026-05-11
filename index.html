@@ -211,24 +211,25 @@
         cursor: pointer;
       }
 
-      /* 下部ナビ本体 */
+      /* 下部ナビ本体：高さを完全固定（safe-area分は別途paddingで吸収） */
       #bottom-nav {
         display: block;
         position: fixed;
         bottom: 0; left: 0; right: 0;
-        height: var(--bottom-nav-h);
+        height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
         background: var(--bg2);
         border-top: 1px solid var(--border);
         z-index: 1000;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        box-sizing: border-box;
       }
 
-      /* スクロールコンテナ */
+      /* スクロールコンテナ：高さはCSS変数で固定（safe-areaは#bottom-navのpaddingで吸収） */
       #bnav-scroll {
         display: flex;
         overflow-x: auto;
         overflow-y: hidden;
-        height: 100%;
+        height: var(--bottom-nav-h);
+        box-sizing: border-box;
         scrollbar-width: none;
         -ms-overflow-style: none;
         padding: 0 4px;
@@ -238,21 +239,23 @@
       }
       #bnav-scroll::-webkit-scrollbar { display: none; }
 
-      /* 各タブボタン */
+      /* 各タブボタン：高さ固定・幅64px固定・padding無効化 */
       .bnav-item {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 2px;
         flex-shrink: 0;
-        min-width: 64px;
-        padding: 6px 10px 4px;
+        width: 64px;
+        height: var(--bottom-nav-h);
+        padding: 0;
+        box-sizing: border-box;
         background: transparent;
         border: none;
         border-bottom: 2px solid transparent;
         color: var(--text-muted);
-        font-size: 0.62rem;
+        font-size: 0.6rem;
         font-family: inherit;
         cursor: pointer;
         transition: color 0.15s, border-color 0.15s;
@@ -297,10 +300,7 @@
       .bnav-item span {
         pointer-events: none;
         font-size: 0.6rem;
-      }
-      .bnav-item {
-        min-width: 52px;
-        max-width: 72px;
+        line-height: 1;
       }
     }
 
