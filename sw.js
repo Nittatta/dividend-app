@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hdp-cache-v7';
+const CACHE_NAME = 'hdp-cache-v8';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -122,8 +122,6 @@
     @media (max-width: 600px) {
       /* PC専用列を非表示 */
       .pc-only { display: none !important; }
-      /* テーブル幅をコンテナ内に収める */
-      #dash-table-wrap { overflow-x: hidden !important; }
       #dash-table { font-size: 0.78rem; table-layout: fixed; width: 100%; }
       /* 列幅指定 */
       #dash-table th:nth-child(1),
@@ -386,8 +384,8 @@
       background: var(--bg3);
     }
     @media (max-width: 600px) {
-      #dash-table thead th,
-      #settings-table thead th {
+      #dash-table thead th {
+        position: sticky;
         top: 48px;
       }
     }
