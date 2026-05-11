@@ -1133,7 +1133,7 @@
           <tr>
             <td colspan="12" class="muted" style="text-align:center;padding:32px;">
               CSVをインポートしてください →
-              <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
+              <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:8px;">インポート画面へ</button>
             </td>
           </tr>
         </tbody>
@@ -1176,7 +1176,7 @@
     <!-- データなし -->
     <div id="div-empty" style="display:none;" class="card" style="text-align:center;padding:32px;color:var(--text-muted);">
       CSVをインポートすると配当サマリーが表示されます。
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:12px;">インポート画面へ</button>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:12px;">インポート画面へ</button>
     </div>
 
     <div id="div-content">
@@ -1290,7 +1290,7 @@
 
     <div id="sector-empty" class="card" style="text-align:center;padding:32px;color:var(--text-muted);">
       CSVをインポートするとセクター分散が表示されます。
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:12px;">インポート画面へ</button>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:12px;">インポート画面へ</button>
     </div>
 
     <div id="sector-content" style="display:none;">
@@ -2832,7 +2832,7 @@
     if (!snap || !snap.positions.length) {
       tbody.innerHTML = `<tr><td colspan="12" class="muted" style="text-align:center;padding:32px;">
         CSVをインポートしてください →
-        <button class="btn btn-ghost btn-sm" onclick="showScreen('import')" style="margin-left:8px;">インポート画面へ</button>
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('settings')" style="margin-left:8px;">インポート画面へ</button>
       </td></tr>`;
       if (tfoot) tfoot.style.display = 'none';
       return;
