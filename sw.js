@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hdp-cache-v1';
+const CACHE_NAME = 'hdp-cache-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,7 +42,7 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         return caches.match(event.request).then((cached) => {
-          return cached || new Response('オフラインです。最後に開いた状態を表示しています。', {
+          return cached || new Response('オフラインです。', {
             headers: { 'Content-Type': 'text/plain; charset=utf-8' },
           });
         });
