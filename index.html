@@ -186,6 +186,10 @@
     }
 
     @media (max-width: 600px) {
+      /* 横スクロールを完全防止（ブラウザ版での横幅縮小問題対策） */
+      html, body {
+        overflow-x: hidden;
+      }
       body {
         padding-top: 48px;
         padding-bottom: var(--bottom-nav-h);
@@ -634,6 +638,10 @@
       /* 設定テーブルを横スクロール可能に */
       #settings-table-wrap {
         overflow-x: auto !important;
+      }
+      /* スマホではスティッキーヘッダー無効のため overflow: visible 不要 → 横幅を安定させる */
+      #dash-table-wrap {
+        overflow-x: auto;
       }
       /* S/M/Lサイズ切替ボタン非表示（スマホでは不要） */
       .btn-tblsize { display: none !important; }
@@ -1217,7 +1225,7 @@
         保有株一覧
         <span id="dash-count-badge" style="font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;"></span>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0;">
         <input type="text" id="dash-search" placeholder="コード・銘柄名…" style="width:130px;" oninput="onDashFilterChange()">
         <select id="dash-filter-account" onchange="onDashFilterChange()">
           <option value="">全口座</option>
