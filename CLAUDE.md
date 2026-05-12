@@ -57,6 +57,10 @@ git push origin main
 - Claude Code から git は直接実行不可。PowerShell から手動実行すること。
 - PWAキャッシュ更新が必要な場合は `sw.js` の `CACHE_NAME` を +1 すること（現在 **v16**）。
 
+**⚠️ .gitignore に必ず `.claude/` を含めること**
+Claude Code の作業用一時フォルダが誤って git 管理されると
+GitHub Actions のデプロイが失敗します。
+
 ---
 
 ## 4. 技術スタック
