@@ -1,3 +1,19 @@
 
 # Claude Code 菴懈･ｭ繝輔ぃ繧､繝ｫ
 .claude/
+
+# 環境変数・シークレット
+.env
+.env.local
+.env.*.local
+*.env
+
+# 認証情報系
+*.pem
+*.key
+*.p12
+secrets/
+credentials/
+
+# Claude Code関連(追加)
+.mcp.json
