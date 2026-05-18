@@ -24,7 +24,7 @@
 ## 2. ファイル構成
 
 ```
-C:\Users\drums\dividend-app\
+C:\Users\drums\Documents\GitWork\dividend-app\
 ├── CLAUDE.md          ← このファイル（Claude Code 指示書）
 ├── app.html           ← 開発用ソース（編集はここ）
 ├── index.html         ← GitHub Pages 配信用（minify.ps1 で生成）
@@ -46,7 +46,7 @@ C:\Users\drums\dividend-app\
 ## 3. git push 手順
 
 ```powershell
-cd C:\Users\drums\dividend-app
+cd C:\Users\drums\Documents\GitWork\dividend-app
 powershell -ExecutionPolicy Bypass -File minify.ps1
 git add -A
 git commit -m "変更内容の説明"

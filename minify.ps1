@@ -1,5 +1,5 @@
-$appPath = "C:\Users\drums\dividend-app\app.html"
-$idxPath = "C:\Users\drums\dividend-app\index.html"
+$appPath = "$PSScriptRoot\app.html"
+$idxPath = "$PSScriptRoot\index.html"
 
 Write-Host "Reading app.html..."
 $content = [System.IO.File]::ReadAllText($appPath, [System.Text.Encoding]::UTF8)
