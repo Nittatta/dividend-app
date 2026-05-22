@@ -2,18 +2,23 @@
 # Claude Code 作業ファイル
 .claude/
 
-# ���ϐ��E�V�[�N���b�g
+# Codex / その他AIエージェント作業ファイル
+.codex/
+.cursor/
+.aider*
+
+# 環境変数・シークレット
 .env
 .env.local
 .env.*.local
 *.env
 
-# �F�؏��n
+# 認証情報
 *.pem
 *.key
 *.p12
 secrets/
 credentials/
 
-# Claude Code�֘A(�ǉ�)
+# Claude Code関連（追加）
 .mcp.json
